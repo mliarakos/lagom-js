@@ -11,7 +11,7 @@ val akkaJsVersion = "1.2.5.23"
 
 lazy val commonSettings = Seq(
   organization := "org.mliarakos.lagom-scalajs",
-  version := "0.1.0",
+  version := "0.1.0-SNAPSHOT",
   scalacOptions ++= Seq(
     "-encoding",
     "utf8",
@@ -69,7 +69,7 @@ def copyToSourceFolder(sourceDir: File, targetDir: File): Unit = {
   (targetDir / ".gitkeep").createNewFile
 }
 
-lazy val `lagom-js-api` = crossProject(JSPlatform)
+lazy val `lagomjs-api` = crossProject(JSPlatform)
   .crossType(CrossType.Full)
   .in(file("lagom-js-api"))
   .settings(commonSettings: _*)
@@ -100,7 +100,7 @@ lazy val `lagom-js-api` = crossProject(JSPlatform)
     }
   )
 
-lazy val `lagom-js-api-scaladsl` = crossProject(JSPlatform)
+lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .crossType(CrossType.Full)
   .in(file("lagom-js-api-scaladsl"))
   .settings(commonSettings: _*)
@@ -131,9 +131,9 @@ lazy val `lagom-js-api-scaladsl` = crossProject(JSPlatform)
       (compile in Compile).dependsOn(assembleLagomLibrary).value
     }
   )
-  .jsConfigure(_.dependsOn(`lagom-js-api`.js))
+  .jsConfigure(_.dependsOn(`lagomjs-api`.js))
 
-lazy val `lagom-js-client` = crossProject(JSPlatform)
+lazy val `lagomjs-client` = crossProject(JSPlatform)
   .crossType(CrossType.Full)
   .in(file("lagom-js-client"))
   .settings(commonSettings: _*)
@@ -164,9 +164,9 @@ lazy val `lagom-js-client` = crossProject(JSPlatform)
       (compile in Compile).dependsOn(assembleLagomLibrary).value
     }
   )
-  .jsConfigure(_.dependsOn(`lagom-js-api`.js))
+  .jsConfigure(_.dependsOn(`lagomjs-api`.js))
 
-lazy val `lagom-js-client-scaladsl` = crossProject(JSPlatform)
+lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   .crossType(CrossType.Full)
   .in(file("lagom-js-client-scaladsl"))
   .settings(commonSettings: _*)
@@ -197,14 +197,18 @@ lazy val `lagom-js-client-scaladsl` = crossProject(JSPlatform)
       (compile in Compile).dependsOn(assembleLagomLibrary).value
     }
   )
-  .jsConfigure(_.dependsOn(`lagom-js-client`.js, `lagom-js-api-scaladsl`.js))
+  .jsConfigure(_.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js))
 
-lazy val root = project
+lazy val `lagomjs` = project
   .in(file("."))
   .settings(commonSettings: _*)
+  .settings(
+    publish := {},
+    publishLocal := {}
+  )
   .aggregate(
-    `lagom-js-api`.js,
-    `lagom-js-api-scaladsl`.js,
-    `lagom-js-client`.js,
-    `lagom-js-client-scaladsl`.js
+    `lagomjs-api`.js,
+    `lagomjs-api-scaladsl`.js,
+    `lagomjs-client`.js,
+    `lagomjs-client-scaladsl`.js
   )
