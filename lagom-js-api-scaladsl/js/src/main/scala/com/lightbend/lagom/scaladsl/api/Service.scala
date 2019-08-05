@@ -4,19 +4,15 @@
 
 package com.lightbend.lagom.scaladsl.api
 
-import java.lang.reflect.Method
-
 import akka.util.ByteString
-import com.lightbend.lagom.scaladsl.api.Descriptor.ServiceCallHolder
-import com.lightbend.lagom.scaladsl.api.Descriptor.TopicHolder
+import com.lightbend.lagom.scaladsl.api.Descriptor.{ ServiceCallHolder, TopicHolder }
 import com.lightbend.lagom.scaladsl.api.broker.Topic
-import com.lightbend.lagom.scaladsl.api.deser.MessageSerializer
-import com.lightbend.lagom.scaladsl.api.deser.PathParamSerializer
+import com.lightbend.lagom.scaladsl.api.deser.{ MessageSerializer, PathParamSerializer }
 
 import scala.collection.immutable
-import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
 import scala.language.implicitConversions
+import scala.reflect.macros.blackbox.Context
 import scala.scalajs.js
 
 /**
@@ -39,8 +35,8 @@ trait Service {
 
 object Service {
 
-  import ServiceSupport._
   import Descriptor._
+  import ServiceSupport._
 
   /**
    * Create a descriptor for a service with the given name.

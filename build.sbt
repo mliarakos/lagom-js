@@ -1,16 +1,13 @@
-import sbt.Keys.scalaVersion
-import sbt.Keys.version
-import sbtcrossproject.CrossPlugin.autoImport.crossProject
-import sbtcrossproject.CrossPlugin.autoImport.CrossType
+import sbt.Keys.{ scalaVersion, version }
+import sbtcrossproject.CrossPlugin.autoImport.{ CrossType, crossProject }
 
 scalaVersion in ThisBuild := "2.12.8"
 
 val lagomOriginalVersion = "1.5.1"
-
-val akkaJsVersion = "1.2.5.23"
+val akkaJsVersion        = "1.2.5.23"
 
 lazy val commonSettings = Seq(
-  organization := "org.mliarakos.lagom-scalajs",
+  organization := "org.mliarakos.lagomjs",
   version := "0.1.0-SNAPSHOT",
   scalacOptions ++= Seq(
     "-encoding",
@@ -25,18 +22,18 @@ lazy val commonJsSettings = Seq(
   scalacOptions += "-P:scalajs:sjsDefinedByDefault"
 )
 
-lazy val lagomVersion   = settingKey[String]("lagomVersion")
-lazy val lagomTargetDir = settingKey[File]("lagomTargetDir")
+lazy val lagomVersion         = settingKey[String]("lagomVersion")
+lazy val lagomTargetDirectory = settingKey[File]("lagomTargetDir")
 
 lazy val assembleLagomLibrary = taskKey[Unit]("Check out lagom standard library and then apply overrides.")
 
-def removeClash(base: File, target: File): Unit = {
+def removeCollisions(base: File, target: File): Unit = {
   if (base.exists) {
     if ((base.isFile && ((target.exists && target.isFile) || base.getName.endsWith(".java"))) ||
         (base.isDirectory && target.isDirectory && IO.listFiles(target).forall(_.getName.startsWith(".")))) {
       IO.delete(base)
     } else if (base.isDirectory)
-      IO.listFiles(base).foreach(f => removeClash(f, new java.io.File(target, f.getName)))
+      IO.listFiles(base).foreach(f => removeCollisions(f, new java.io.File(target, f.getName)))
   }
 }
 
@@ -58,7 +55,7 @@ def checkoutLagomSources(targetDir: File, version: String): Unit = {
   }
 }
 
-def copyToSourceFolder(sourceDir: File, targetDir: File): Unit = {
+def copyToSourceDirectory(sourceDir: File, targetDir: File): Unit = {
   IO.delete(targetDir)
   IO.copyDirectory(
     sourceDir,
@@ -78,13 +75,14 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
   )
   .settings(
     lagomVersion := lagomOriginalVersion,
-    lagomTargetDir := target.value / "lagomSources" / lagomVersion.value,
+    lagomTargetDirectory := target.value / "lagomSources" / lagomVersion.value,
     assembleLagomLibrary := {
-      checkoutLagomSources(lagomTargetDir.value, lagomVersion.value)
-      val srcTarget = file("lagom-js-api/shared/src/main/scala")
-      copyToSourceFolder(
-        lagomTargetDir.value / "service" / "core" / "api" / "src" / "main" / "scala",
-        srcTarget
+      checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
+
+      val sourceTarget = sourceDirectory.value / "shared" / "src" / "main" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "core" / "api" / "src" / "main" / "scala",
+        sourceTarget
       )
     }
   )
@@ -112,18 +110,18 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   )
   .settings(
     lagomVersion := lagomOriginalVersion,
-    lagomTargetDir := target.value / "lagomSources" / lagomVersion.value,
+    lagomTargetDirectory := target.value / "lagomSources" / lagomVersion.value,
     assembleLagomLibrary := {
-      checkoutLagomSources(lagomTargetDir.value, lagomVersion.value)
+      checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
 
-      val srcTarget = file("lagom-js-api-scaladsl/shared/src/main/scala")
-      copyToSourceFolder(
-        lagomTargetDir.value / "service" / "scaladsl" / "api" / "src" / "main" / "scala",
-        srcTarget
+      val sourceTarget = sourceDirectory.value / "shared" / "src" / "main" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "scaladsl" / "api" / "src" / "main" / "scala",
+        sourceTarget
       )
 
-      val jsSources = file("lagom-js-api-scaladsl/js/src/main/scala")
-      removeClash(srcTarget, jsSources)
+      val jsSources = sourceDirectory.value / "js" / "src" / "main" / "scala"
+      removeCollisions(sourceTarget, jsSources)
     }
   )
   .jsSettings(commonJsSettings: _*)
@@ -150,18 +148,18 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   )
   .settings(
     lagomVersion := lagomOriginalVersion,
-    lagomTargetDir := target.value / "lagomSources" / lagomVersion.value,
+    lagomTargetDirectory := target.value / "lagomSources" / lagomVersion.value,
     assembleLagomLibrary := {
-      checkoutLagomSources(lagomTargetDir.value, lagomVersion.value)
+      checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
 
-      val srcTarget = file("lagom-js-client/shared/src/main/scala")
-      copyToSourceFolder(
-        lagomTargetDir.value / "service" / "core" / "client" / "src" / "main" / "scala",
-        srcTarget
+      val sourceTarget = sourceDirectory.value / "shared" / "src" / "main" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "core" / "client" / "src" / "main" / "scala",
+        sourceTarget
       )
 
-      val jsSources = file("lagom-js-client/js/src/main/scala")
-      removeClash(srcTarget, jsSources)
+      val jsSources = sourceDirectory.value / "js" / "src" / "main" / "scala"
+      removeCollisions(sourceTarget, jsSources)
     }
   )
   .jsSettings(commonJsSettings: _*)
@@ -188,18 +186,18 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   )
   .settings(
     lagomVersion := lagomOriginalVersion,
-    lagomTargetDir := target.value / "lagomSources" / lagomVersion.value,
+    lagomTargetDirectory := target.value / "lagomSources" / lagomVersion.value,
     assembleLagomLibrary := {
-      checkoutLagomSources(lagomTargetDir.value, lagomVersion.value)
+      checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
 
-      val srcTarget = file("lagom-js-client-scaladsl/shared/src/main/scala")
-      copyToSourceFolder(
-        lagomTargetDir.value / "service" / "scaladsl" / "client" / "src" / "main" / "scala",
+      val srcTarget = sourceDirectory.value / "shared" / "src" / "main" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "scaladsl" / "client" / "src" / "main" / "scala",
         srcTarget
       )
 
-      val jsSources = file("lagom-js-client-scaladsl/js/src/main/scala")
-      removeClash(srcTarget, jsSources)
+      val jsSources = sourceDirectory.value / "js" / "src" / "main" / "scala"
+      removeCollisions(srcTarget, jsSources)
     }
   )
   .jsSettings(commonJsSettings: _*)

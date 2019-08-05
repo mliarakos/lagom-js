@@ -4,25 +4,21 @@
 
 package com.lightbend.lagom.internal.client
 
-import java.net.URI
-import java.net.URLEncoder
+import java.net.{ URI, URLEncoder }
 import java.nio.ByteBuffer
 
 import akka.NotUsed
 import akka.stream.Materializer
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{ Sink, Source }
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
 import org.scalajs.dom.XMLHttpRequest
-import org.scalajs.dom.ext.Ajax
-import org.scalajs.dom.ext.AjaxException
+import org.scalajs.dom.ext.{ Ajax, AjaxException }
 import play.api.http.HeaderNames
 import play.api.libs.streams.AkkaStreams
 
 import scala.collection.immutable
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
     serviceName: String,

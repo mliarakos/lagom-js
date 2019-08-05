@@ -12,25 +12,21 @@ import com.lightbend.lagom.internal.api.Path
 import com.lightbend.lagom.internal.client.ClientServiceCallInvoker
 import com.lightbend.lagom.internal.scaladsl.api.ScaladslPath
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactory
-import com.lightbend.lagom.scaladsl.api.Descriptor.Call
-import com.lightbend.lagom.scaladsl.api.Descriptor.RestCallId
-import com.lightbend.lagom.scaladsl.api.Descriptor.TopicCall
-import com.lightbend.lagom.scaladsl.api.ServiceSupport.ScalaMethodServiceCall
-import com.lightbend.lagom.scaladsl.api.ServiceSupport.ScalaMethodTopic
+import com.lightbend.lagom.scaladsl.api.Descriptor.{ Call, RestCallId, TopicCall }
+import com.lightbend.lagom.scaladsl.api.ServiceSupport.{ ScalaMethodServiceCall, ScalaMethodTopic }
 import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.broker.Topic
 import com.lightbend.lagom.scaladsl.api.deser._
-import com.lightbend.lagom.scaladsl.api.transport.Method
-import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
-import com.lightbend.lagom.scaladsl.api.transport.ResponseHeader
-import com.lightbend.lagom.scaladsl.client.ServiceClientConstructor
-import com.lightbend.lagom.scaladsl.client.ServiceClientContext
-import com.lightbend.lagom.scaladsl.client.ServiceClientImplementationContext
-import com.lightbend.lagom.scaladsl.client.ServiceResolver
+import com.lightbend.lagom.scaladsl.api.transport.{ Method, RequestHeader, ResponseHeader }
+import com.lightbend.lagom.scaladsl.client.{
+  ServiceClientConstructor,
+  ServiceClientContext,
+  ServiceClientImplementationContext,
+  ServiceResolver
+}
 
 import scala.collection.immutable
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 
 private[lagom] class ScaladslServiceClient(
     webSocketClient: ScaladslWebSocketClient,

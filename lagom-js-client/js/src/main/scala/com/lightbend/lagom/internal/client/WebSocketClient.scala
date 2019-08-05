@@ -4,23 +4,15 @@ import java.net.URI
 import java.nio.ByteBuffer
 
 import akka.NotUsed
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.{ Flow, Sink, Source }
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
-import org.reactivestreams.Publisher
-import org.reactivestreams.Subscriber
-import org.reactivestreams.Subscription
-import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.Event
-import org.scalajs.dom.WebSocket
+import org.reactivestreams.{ Publisher, Subscriber, Subscription }
+import org.scalajs.dom.{ CloseEvent, Event, WebSocket }
 import org.scalajs.dom.raw.MessageEvent
 
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
-import scala.concurrent.ExecutionContext
-import scala.concurrent.Future
-import scala.concurrent.Promise
 
 private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) extends LagomServiceApiBridge {
 
