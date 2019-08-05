@@ -96,9 +96,8 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := {
-      (compile in Compile).dependsOn(assembleLagomLibrary).value
-    }
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
 
 lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
@@ -131,9 +130,8 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := {
-      (compile in Compile).dependsOn(assembleLagomLibrary).value
-    }
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-api`.js)
@@ -169,9 +167,8 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := {
-      (compile in Compile).dependsOn(assembleLagomLibrary).value
-    }
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-api`.js)
@@ -207,9 +204,8 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := {
-      (compile in Compile).dependsOn(assembleLagomLibrary).value
-    }
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js)
