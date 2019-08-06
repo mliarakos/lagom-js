@@ -23,7 +23,7 @@ lazy val `service-api` = crossProject(JSPlatform, JVMPlatform)
   )
 ```
 
-A basic JS client project will depend on the service API JS platform and he Lagom.js client dependency:
+A basic JS client project will depend on the service API JS platform and the Lagom.js client dependency:
 
 ```scala
 val lagomjsScaladslClient = "org.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-SNAPSHOT"
