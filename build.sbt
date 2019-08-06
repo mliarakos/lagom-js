@@ -71,7 +71,7 @@ def copyToSourceDirectory(sourceDir: File, targetDir: File): Unit = {
 lazy val `lagomjs-api` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("lagom-js-api"))
+  .in(file("lagomjs-api"))
   .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-api"
@@ -106,7 +106,7 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
 lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("lagom-js-api-scaladsl"))
+  .in(file("lagomjs-api-scaladsl"))
   .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-scaladsl-api"
@@ -144,7 +144,7 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
 lazy val `lagomjs-client` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("lagom-js-client"))
+  .in(file("lagomjs-client"))
   .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-client"
@@ -182,7 +182,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
 lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("lagom-js-client-scaladsl"))
+  .in(file("lagomjs-client-scaladsl"))
   .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-scaladsl-client"
