@@ -1,20 +1,22 @@
-package play.api.libs.streams
-
 /*
  * Copyright (C) 2016-2019 Lightbend Inc. <https://www.lightbend.com>
  */
+
+package play.api.libs.streams
+
+import akka.Done
+import akka.stream.FlowShape
+import akka.stream.scaladsl.Broadcast
+import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.GraphDSL
+import akka.stream.scaladsl.Sink
+
+import scala.concurrent.Future
 
 /*
  * Copy of [[play.api.libs.AkkaStreams.ignoreAfterCancellation]] for JS compatibility.
  * Omitted all other objects in the source file.
  */
-
-import akka.Done
-import akka.stream.FlowShape
-import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Sink}
-
-import scala.concurrent.Future
-
 object AkkaStreams {
 
   /**

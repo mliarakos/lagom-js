@@ -7,18 +7,20 @@ package com.lightbend.lagom.scaladsl.client
 import java.io.File
 
 import akka.actor.ActorSystem
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.ActorMaterializer
+import akka.stream.Materializer
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactoryProvider
-import com.lightbend.lagom.internal.scaladsl.client.{
-  ScaladslClientMacroImpl,
-  ScaladslServiceClient,
-  ScaladslServiceResolver,
-  ScaladslWebSocketClient
-}
+import com.lightbend.lagom.internal.scaladsl.client.ScaladslClientMacroImpl
+import com.lightbend.lagom.internal.scaladsl.client.ScaladslServiceClient
+import com.lightbend.lagom.internal.scaladsl.client.ScaladslServiceResolver
+import com.lightbend.lagom.internal.scaladsl.client.ScaladslWebSocketClient
 import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.broker.Topic
-import com.lightbend.lagom.scaladsl.api.deser.{ DefaultExceptionSerializer, ExceptionSerializer }
-import play.api.{ Configuration, Environment, Mode }
+import com.lightbend.lagom.scaladsl.api.deser.DefaultExceptionSerializer
+import com.lightbend.lagom.scaladsl.api.deser.ExceptionSerializer
+import play.api.Configuration
+import play.api.Environment
+import play.api.Mode
 
 import scala.collection.immutable
 import scala.concurrent.ExecutionContext

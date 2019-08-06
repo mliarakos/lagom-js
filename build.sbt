@@ -1,5 +1,7 @@
-import sbt.Keys.{ scalaVersion, version }
-import sbtcrossproject.CrossPlugin.autoImport.{ CrossType, crossProject }
+import sbt.Keys.scalaVersion
+import sbt.Keys.version
+import sbtcrossproject.CrossPlugin.autoImport.CrossType
+import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 scalaVersion in ThisBuild := "2.12.8"
 
