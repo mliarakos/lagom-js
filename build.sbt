@@ -24,10 +24,13 @@ lazy val commonJsSettings = Seq(
   scalacOptions += "-P:scalajs:sjsDefinedByDefault"
 )
 
-lazy val lagomVersion         = settingKey[String]("lagomVersion")
-lazy val lagomTargetDirectory = settingKey[File]("lagomTargetDir")
+lazy val lagomVersion         = settingKey[String]("The Lagom version to use.")
+lazy val lagomTargetDirectory = settingKey[File]("Directory for the Lagom source.")
 
-lazy val assembleLagomLibrary = taskKey[Unit]("Check out lagom standard library and then apply overrides.")
+lazy val assembleLagomLibrary = taskKey[Unit]("Check out the Lagom component source and then apply overrides.")
+
+// Adapted the Git checkout approach used by Akka.js to cross-compile Lagom for JS
+// https://github.com/akka-js/akka.js
 
 def removeCollisions(base: File, target: File): Unit = {
   if (base.exists) {
