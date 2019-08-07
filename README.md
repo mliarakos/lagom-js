@@ -1,5 +1,7 @@
 # Scala.js Client for Lagom
 
+This project is a work in progress. You'll need to compile and locally publish the project to test it out.
+
 ### Compatibility
 
 | Lagom.js | Lagom | Scala | Scala.js |
