@@ -13,7 +13,7 @@ This project is a work in progress. You'll need to compile and locally publish t
 Configure the service API as a JVM and JS cross project, then add the Lagom.js API dependency to the JS platform: 
 
 ```scala
-val lagomjsScaladslApi = "org.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-SNAPSHOT"
+val lagomjsScaladslApi = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-SNAPSHOT"
 
 lazy val `service-api` = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
@@ -28,7 +28,7 @@ lazy val `service-api` = crossProject(JSPlatform, JVMPlatform)
 A basic JS client project will depend on the service API JS platform and the Lagom.js client dependency:
 
 ```scala
-val lagomjsScaladslClient = "org.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-SNAPSHOT"
+val lagomjsScaladslClient = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-SNAPSHOT"
 
 lazy val `client-js` = project
   .settings(

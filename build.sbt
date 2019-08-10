@@ -9,7 +9,7 @@ val lagomOriginalVersion = "1.5.1"
 val akkaJsVersion        = "1.2.5.23"
 
 lazy val commonSettings = Seq(
-  organization := "org.mliarakos.lagomjs",
+  organization := "com.github.mliarakos.lagomjs",
   version := "0.1.0-SNAPSHOT",
   scalacOptions ++= Seq(
     "-encoding",
