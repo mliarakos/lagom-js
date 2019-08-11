@@ -132,6 +132,12 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
         sourceTarget
       )
 
+      val sourceTestTarget = file("lagomjs-api-scaladsl") / "shared" / "src" / "test" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "scaladsl" / "api" / "src" / "test" / "scala",
+        sourceTestTarget
+      )
+
       val jsSources = sourceDirectory.value / "main" / "scala"
       applyOverrides(sourceTarget, jsSources)
     },
@@ -140,7 +146,8 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided"
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
+      "org.scalatest"  %%% "scalatest"   % "3.0.5"            % Test
     )
   )
   .jsSettings(
@@ -210,6 +217,12 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
         sourceTarget
       )
 
+      val sourceTestTarget = file("lagomjs-client-scaladsl") / "shared" / "src" / "test" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "scaladsl" / "client" / "src" / "test" / "scala",
+        sourceTestTarget
+      )
+
       val jsSources = sourceDirectory.value / "main" / "scala"
       applyOverrides(sourceTarget, jsSources)
     },
@@ -217,11 +230,16 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+    )
+  )
+  .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
-    _.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js)
+    _.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js, `lagomjs-macro-testkit`.js % Test)
   )
 
 lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
@@ -258,6 +276,43 @@ lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
     _.dependsOn(`lagomjs-api-scaladsl`.js)
   )
 
+lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
+  .withoutSuffixFor(JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("lagomjs-macro-testkit"))
+  .settings(commonSettings: _*)
+  .settings(
+    lagomVersion := lagomOriginalVersion,
+    lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
+    assembleLagomLibrary := {
+      checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
+
+      val sourceTarget = file("lagomjs-macro-testkit") / "shared" / "src" / "main" / "scala"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "macro-testkit" / "src" / "main" / "scala",
+        sourceTarget
+      )
+
+      val jsSources = sourceDirectory.value / "main" / "scala"
+      applyOverrides(sourceTarget, jsSources)
+    },
+    cleanLagomLibrary := { IO.delete(lagomTargetDirectory.value) }
+  )
+  .settings(
+    publish / skip := true,
+    publishLocal / skip := true
+  )
+  .jsSettings(commonJsSettings: _*)
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided"
+    )
+  )
+  .jsSettings(
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+  )
+
 lazy val `lagomjs` = project
   .in(file("."))
   .settings(commonSettings: _*)
@@ -270,5 +325,6 @@ lazy val `lagomjs` = project
     `lagomjs-api-scaladsl`.js,
     `lagomjs-client`.js,
     `lagomjs-client-scaladsl`.js,
-    `lagomjs-persistence-scaladsl`.js
+    `lagomjs-persistence-scaladsl`.js,
+    `lagomjs-macro-testkit`.js
   )
