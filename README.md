@@ -4,9 +4,9 @@ This project is a work in progress. You'll need to compile and locally publish t
 
 ### Compatibility
 
-| Lagom.js | Lagom | Scala | Scala.js |
-|----------|-------|-------|----------|
-| 0.1.0    | 1.5.x | 2.12  | 0.6.24+  |
+| Lagom.js | Lagom | Scala           | Scala.js |
+|----------|-------|-----------------|----------|
+| 0.1.0    | 1.5.x | 2.11 <br> 2.12  | 0.6.28+  |
 
 ### Usage
 
