@@ -212,11 +212,6 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
-    libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.7"
-    )
-  )
-  .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
