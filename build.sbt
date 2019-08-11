@@ -261,8 +261,8 @@ lazy val `lagomjs` = project
   .in(file("."))
   .settings(commonSettings: _*)
   .settings(
-    publish := {},
-    publishLocal := {}
+    publish / skip := true,
+    publishLocal / skip := true
   )
   .aggregate(
     `lagomjs-api`.js,
