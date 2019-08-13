@@ -194,6 +194,24 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
     _.dependsOn(`lagomjs-api`.js)
   )
 
+lazy val `lagomjs-spi` = crossProject(JSPlatform)
+  .withoutSuffixFor(JSPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("lagomjs-spi"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "lagomjs-spi"
+  )
+  .settings(
+    assembleLagomLibrary := {},
+    cleanLagomLibrary := {}
+  )
+  .jsSettings(commonJsSettings: _*)
+  .jsSettings(
+    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+  )
+
 lazy val `lagomjs-client` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
@@ -222,7 +240,8 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.0.0"
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "org.scalatest" %%% "scalatest"   % "3.0.8" % Test
     )
   )
   .jsSettings(
@@ -231,7 +250,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
-    _.dependsOn(`lagomjs-api`.js)
+    _.dependsOn(`lagomjs-api`.js, `lagomjs-spi`.js)
   )
 
 lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
@@ -363,6 +382,7 @@ lazy val `lagomjs` = project
   .aggregate(
     `lagomjs-api`.js,
     `lagomjs-api-scaladsl`.js,
+    `lagomjs-spi`.js,
     `lagomjs-client`.js,
     `lagomjs-client-scaladsl`.js,
     `lagomjs-persistence-scaladsl`.js,
