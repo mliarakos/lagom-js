@@ -8,9 +8,7 @@ val scalaVersions = Seq("2.12.9", "2.11.12")
 val lagomOriginalVersion = "1.5.1"
 val akkaJsVersion        = "1.2.5.23"
 
-lazy val commonSettings = Seq(
-  organization := "com.github.mliarakos.lagomjs",
-  version := "0.1.0-SNAPSHOT",
+lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
   scalaVersion := scalaVersions.head,
   scalacOptions ++= Seq(
@@ -20,6 +18,38 @@ lazy val commonSettings = Seq(
     "-feature",
     "-unchecked"
   )
+)
+
+lazy val publishSettings = Seq(
+  homepage := Some(url("https://github.com/mliarakos/lagom-js")),
+  licenses := Seq(("Apache-2.0", url("https://www.apache.org/licenses/LICENSE-2.0"))),
+  organizationHomepage := Some(url("https://github.com/mliarakos")),
+  pomExtra := {
+    <developers>
+      <developer>
+        <id>mliarakos</id>
+        <name>Michael Liarakos</name>
+        <url>https://github.com/mliarakos</url>
+      </developer>
+    </developers>
+  },
+  pomIncludeRepository := { _ =>
+    false
+  },
+  publishMavenStyle := true,
+  publishTo := {
+    val nexus = "https://oss.sonatype.org"
+    if (isSnapshot.value) Some("snapshots".at(s"$nexus/content/repositories/snapshots"))
+    else Some("releases".at(s"$nexus/service/local/staging/deploy/maven2"))
+  },
+  scmInfo := Some(
+    ScmInfo(url("https://github.com/mliarakos/lagom-js"), "scm:git:git@github.com:mliarakos/lagom-js.git")
+  )
+)
+
+lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
+  organization := "com.github.mliarakos.lagomjs",
+  version := "0.1.0-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
@@ -109,7 +139,8 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
 
 lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
@@ -152,7 +183,8 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-api`.js)
@@ -191,7 +223,8 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-api`.js)
@@ -236,7 +269,8 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js, `lagomjs-macro-testkit`.js % Test)
@@ -270,7 +304,8 @@ lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-api-scaladsl`.js)
@@ -310,7 +345,8 @@ lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
+    publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
+    PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
 
 lazy val `lagomjs` = project
