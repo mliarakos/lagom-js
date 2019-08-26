@@ -6,19 +6,11 @@ Checkout the [lagom-scalajs-example](https://github.com/mliarakos/lagom-scalajs-
 
 ## Getting Started
 
-This project is a work in progress. You'll need to compile and locally publish the project to test it out.
+This project is a work in progress and currently only has snapshot artifacts. To use the snapshots you'll need to configure SBT to resolve them:
 
-1. Clone the lagom.js Git repo:
-
-   ```sh
-   git clone https://github.com/mliarakos/lagom.js.git
-   ```
-1. Publish lagom.js locally:
-
-   ```sh
-   cd lagom.js
-   sbt +publishLocal
-   ```
+```sbt
+resolvers += Resolver.sonatypeRepo("snapshots")
+```
 
 ### Compatibility
 
