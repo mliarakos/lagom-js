@@ -1,10 +1,16 @@
+/*
+ * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
+ */
+
+/*
+ * Implementation of AsciiSet using scala.collection.immutable.BitSet for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/core/utils/AsciiSet.scala
+ */
+
 package play.core.utils
 
 import scala.collection.immutable.BitSet
 
-/*
- * Implementation of [[AsciiSet.scala]] using [[scala.collection.immutable.BitSet]] for JS compatibility.
- */
 object AsciiSet {
 
   /** Create a set of a single character. */

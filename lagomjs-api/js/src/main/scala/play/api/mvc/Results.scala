@@ -1,7 +1,11 @@
 /*
-* Copy of [[play.api.mvc.Codec]] for JS compatibility.
-* Omitted all other objects in the source file.
-*/
+ * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
+ */
+
+/*
+ * Copy of [[play.api.mvc.Codec]] for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/api/mvc/Results.scala
+ */
 
 package play.api.mvc
 

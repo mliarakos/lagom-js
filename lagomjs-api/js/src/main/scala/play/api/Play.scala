@@ -1,14 +1,12 @@
 /*
- * Implementation of [[play.api.Mode]] removing the Java interoperability for JS compatibility.
- * Omitted all other objects in the source file.
+ * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
  */
 
 package play.api
 
-/**
- * Application mode, either `Dev`, `Test`, or `Prod`.
- *
- * @see [[play.Mode]]
+/*
+ * Copy of [[play.api.Mode]] removing the Java interoperability for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/api/Play.scala
  */
 sealed abstract class Mode
 

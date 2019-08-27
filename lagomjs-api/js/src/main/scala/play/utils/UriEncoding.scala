@@ -1,6 +1,11 @@
 /*
-* Copy of [[UriEncoding.scala]] for JS compatibility.
-*/
+ * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
+ */
+
+/*
+ * Copy of UriEncoding.scala for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/utils/UriEncoding.scala
+ */
 
 package play.utils
 

@@ -14,8 +14,8 @@ import akka.stream.scaladsl.Sink
 import scala.concurrent.Future
 
 /*
- * Copy of [[play.api.libs.AkkaStreams.ignoreAfterCancellation]] for JS compatibility.
- * Omitted all other objects in the source file.
+ * Copy of play.api.libs.AkkaStreams.ignoreAfterCancellation for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play-streams/src/main/scala/play/api/libs/streams/AkkaStreams.scala
  */
 object AkkaStreams {
 

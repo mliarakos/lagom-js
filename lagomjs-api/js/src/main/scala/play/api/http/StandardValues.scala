@@ -1,6 +1,11 @@
 /*
-* Copy of [[StandardValues.scala]] for JS compatibility.
-*/
+ * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
+ */
+
+/*
+ * Copy of StandardValues.scala for JS compatibility.
+ * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/api/http/StandardValues.scala
+ */
 
 package play.api.http
 
