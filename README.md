@@ -14,23 +14,25 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 ### Compatibility
 
-| Lagom.js | Lagom | Scala           | Scala.js |
-|----------|-------|-----------------|----------|
-| 0.1.0    | 1.5.x | 2.11 <br> 2.12  | 0.6.28+  |
+Lagom.js is built against specific versions of Lagom.
+
+| Lagom.js    | Lagom | Scala           | Scala.js |
+|-------------|-------|-----------------|----------|
+| 0.1.0-1.5.1 | 1.5.1 | 2.11 <br> 2.12  | 0.6.24+  |
 
 ## Usage
 
 Lagom.js provides two primary artifacts. The first artifact is `lagomjs-scaladsl-api`:
 
 ```
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-SNAPSHOT"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-1.5.1-SNAPSHOT"
 ```
 
 This provides the JavaScript implementation of the Lagom service API. To use it you'll need to configure your service API
 as a JVM and JS cross project. Then, add the `lagomjs-scaladsl-api` dependency to the JS platform: 
 
 ```scala
-val lagomjsScaladslApi = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-SNAPSHOT"
+val lagomjsScaladslApi = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-1.5.1-SNAPSHOT"
 
 lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
@@ -45,13 +47,13 @@ lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
 The second artifact is `lagomjs-scaladsl-client`:
 
 ```
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-SNAPSHOT"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.1-SNAPSHOT"
 ```
 
 This provides the JavaScript implementation of the Lagom service client. You can use it in a Scala.js project along with your service API to generate a service client:
 
 ```scala
-val lagomjsScaladslClient = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-SNAPSHOT"
+val lagomjsScaladslClient = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.1-SNAPSHOT"
 
 lazy val `client-js` = project
   .settings(
