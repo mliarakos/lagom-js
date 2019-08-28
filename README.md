@@ -73,4 +73,4 @@ Lagom.js supports cross compiling the full Lagom service API into JavaScript. Ho
 The service client does not support:
 - circuit breakers: the circuit breaker configuration in the service definition is available, but is ignored and all service calls are invoked without circuit breakers
 - subscribing to topics: the topic definition in the service client is available, but attempting to subscribe to the topic throws an exception
-- the full range of service locators: the only available `ServiceLocator` implementation is `StaticServiceLocator`
+- the full range of service locators: the only available `ServiceLocator` implementations are `StaticServiceLocator` and `RoundRobinServiceLocator`
