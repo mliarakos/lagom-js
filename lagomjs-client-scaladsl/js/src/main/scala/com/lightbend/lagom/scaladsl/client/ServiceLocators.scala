@@ -1,34 +1,27 @@
 package com.lightbend.lagom.scaladsl.client
 
 import java.net.URI
+import java.util.concurrent.atomic.AtomicInteger
 
 import com.lightbend.lagom.scaladsl.api.Descriptor.Call
 import com.lightbend.lagom.scaladsl.api.Descriptor
+import com.lightbend.lagom.scaladsl.api.LagomConfigComponent
 import com.lightbend.lagom.scaladsl.api.ServiceLocator
 
+import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-/**
- * Components for using the static service locator.
- */
-trait StaticServiceLocatorComponents {
+trait AbstractComponents extends LagomConfigComponent {
   def executionContext: ExecutionContext
-  def staticServiceUri: URI
-
-  lazy val serviceLocator: ServiceLocator = new StaticServiceLocator(staticServiceUri)(executionContext)
 }
 
-/**
- * A static service locator, that always resolves the same URI.
- */
-class StaticServiceLocator(uri: URI)(implicit ec: ExecutionContext) extends ServiceLocator {
+abstract class AbstractServiceLocator(implicit ec: ExecutionContext) extends ServiceLocator {
 
   /**
    * Do the given block with the given service looked up.
    *
-   * This is invoked by [[doWithService()]], after wrapping the passed in block
-   * in a circuit breaker if configured to do so.
+   * This is invoked by [[doWithService()]].
    *
    * The default implementation just delegates to the [[locate()]] method, but this method
    * can be overridden if the service locator wants to inject other behaviour after the service call is complete.
@@ -53,5 +46,47 @@ class StaticServiceLocator(uri: URI)(implicit ec: ExecutionContext) extends Serv
     doWithServiceImpl(name, serviceCall)(block)
   }
 
+}
+
+/**
+ * Components for using the static service locator.
+ */
+trait StaticServiceLocatorComponents extends AbstractComponents {
+  def staticServiceUri: URI
+
+  lazy val serviceLocator: ServiceLocator = new StaticServiceLocator(staticServiceUri)(executionContext)
+}
+
+/**
+ * A static service locator, that always resolves the same URI.
+ */
+class StaticServiceLocator(uri: URI)(implicit ec: ExecutionContext) extends AbstractServiceLocator {
   override def locate(name: String, serviceCall: Call[_, _]): Future[Option[URI]] = Future.successful(Some(uri))
+}
+
+/**
+ * Components for using the round robin service locator.
+ */
+trait RoundRobinServiceLocatorComponents extends AbstractComponents {
+  def roundRobinServiceUris: immutable.Seq[URI]
+
+  lazy val serviceLocator: ServiceLocator = new RoundRobinServiceLocator(roundRobinServiceUris)(executionContext)
+}
+
+/**
+ * A round robin service locator, that cycles through a list of URIs.
+ */
+class RoundRobinServiceLocator(uris: immutable.Seq[URI])(implicit ec: ExecutionContext) extends AbstractServiceLocator {
+
+  private val counter = new AtomicInteger(0)
+
+  override def locate(name: String, serviceCall: Call[_, _]): Future[Option[URI]] = {
+    val index = Math.abs(counter.getAndIncrement() % uris.size)
+    val uri   = uris(index)
+    Future.successful(Some(uri))
+  }
+
+  override def locateAll(name: String, serviceCall: Call[_, _]): Future[List[URI]] =
+    Future.successful(uris.toList)
+
 }
