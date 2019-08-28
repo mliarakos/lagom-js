@@ -106,21 +106,6 @@ def copyToSourceDirectory(sourceDirectory: File, targetDirectory: File): Unit = 
   (targetDirectory / ".gitkeep").createNewFile
 }
 
-lazy val compat = project
-  .in(file("compat"))
-  .settings(commonSettings ++ commonJsSettings: _*)
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.akka-js" %%% "akkajsactor"       % akkaJsVersion,
-      "org.akka-js" %%% "akkajsactorstream" % akkaJsVersion
-    )
-  )
-  .settings(
-    publish / skip := true,
-    publishLocal / skip := true
-  )
-  .enablePlugins(ScalaJSPlugin)
-
 lazy val `lagomjs-api` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
   .crossType(CrossType.Full)
@@ -146,6 +131,8 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
+      "org.akka-js"            %%% "akkajsactor"              % akkaJsVersion,
+      "org.akka-js"            %%% "akkajsactorstream"        % akkaJsVersion,
       "org.scala-lang.modules" %%% "scala-parser-combinators" % "1.1.1",
       "com.typesafe.play"      %%% "play-json"                % "2.7.2"
     )
@@ -154,9 +141,6 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
-  )
-  .jsConfigure(
-    _.dependsOn(compat)
   )
 
 lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
@@ -373,7 +357,6 @@ lazy val `lagomjs` = project
     publishLocal / skip := true
   )
   .aggregate(
-    compat,
     `lagomjs-api`.js,
     `lagomjs-api-scaladsl`.js,
     `lagomjs-client`.js,
