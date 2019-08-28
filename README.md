@@ -1,6 +1,6 @@
 # Lagom.js - Scala.js Client for Lagom
 
-Lagom.js is a port of the Lagom service API and service client to JavaScript. It allows you to use and interact with your service API all in JavaScript. Eliminate the need to keep your frontend in sync with your service API, let lagom.js handle it for you.
+Lagom.js is a port of the [Lagom](https://www.lagomframework.com/) service API and service client to JavaScript. It allows you to use and interact with your service API all in JavaScript. Eliminate the need to keep your frontend in sync with your service API, let lagom.js handle it for you.
 
 Checkout the [lagom-scalajs-example](https://github.com/mliarakos/lagom-scalajs-example) for a demo of how to use lagom.js.
 
@@ -24,7 +24,7 @@ Lagom.js is built against specific versions of Lagom.
 
 Lagom.js provides two primary artifacts. The first artifact is `lagomjs-scaladsl-api`:
 
-```
+```sbt
 "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-1.5.1-SNAPSHOT"
 ```
 
@@ -46,7 +46,7 @@ lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
 
 The second artifact is `lagomjs-scaladsl-client`:
 
-```
+```sbt
 "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.1-SNAPSHOT"
 ```
 
