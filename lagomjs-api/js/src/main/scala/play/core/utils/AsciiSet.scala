@@ -3,7 +3,7 @@
  */
 
 /*
- * Implementation of AsciiSet using scala.collection.immutable.BitSet for JS compatibility.
+ * Implementation of play.core.utils.AsciiSet using scala.collection.immutable.BitSet for JS compatibility.
  * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/core/utils/AsciiSet.scala
  */
 

@@ -5,7 +5,7 @@
 package play.core
 
 /*
- * Implementation of Execution.trampoline using the scalajs queue for JS compatibility.
+ * Implementation of play.core.Execution.trampoline using the scalajs queue for JS compatibility.
  * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/core/Execution.scala
  */
 

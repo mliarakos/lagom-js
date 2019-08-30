@@ -3,7 +3,7 @@
  */
 
 /*
- * Copy of [[play.api.mvc.Codec]] for JS compatibility.
+ * Copy of play.api.mvc.Codec for JS compatibility.
  * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/api/mvc/Results.scala
  */
 

@@ -5,7 +5,7 @@
 package play.api
 
 /*
- * Copy of [[play.api.Mode]] removing the Java interoperability for JS compatibility.
+ * Copy of play.api.Mode removing the Java interoperability for JS compatibility.
  * https://github.com/playframework/playframework/blob/master/core/play/src/main/scala/play/api/Play.scala
  */
 sealed abstract class Mode
