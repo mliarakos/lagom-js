@@ -5,8 +5,8 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 val scalaVersions = Seq("2.12.8", "2.11.12")
 
-val lagomOriginalVersion = "1.5.1"
-val akkaJsVersion        = "1.2.5.23"
+val baseLagomVersion = "1.5.1"
+val akkaJsVersion    = "1.2.5.23"
 
 lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
@@ -49,7 +49,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := "0.1.0-1.5.1-SNAPSHOT"
+  version := s"0.1.0-$baseLagomVersion-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
@@ -115,7 +115,7 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
     name := "lagomjs-api"
   )
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
@@ -152,7 +152,7 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
     name := "lagomjs-scaladsl-api"
   )
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
@@ -199,7 +199,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
     name := "lagomjs-client"
   )
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
@@ -239,7 +239,7 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
     name := "lagomjs-scaladsl-client"
   )
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
@@ -285,7 +285,7 @@ lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
     name := "lagomjs-scaladsl-persistence"
   )
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
@@ -317,7 +317,7 @@ lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
   .in(file("lagomjs-macro-testkit"))
   .settings(commonSettings: _*)
   .settings(
-    lagomVersion := lagomOriginalVersion,
+    lagomVersion := baseLagomVersion,
     lagomTargetDirectory := target.value / "lagom-sources" / lagomVersion.value,
     assembleLagomLibrary := {
       checkoutLagomSources(lagomTargetDirectory.value, lagomVersion.value)
