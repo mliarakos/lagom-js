@@ -14,7 +14,7 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 ### Compatibility
 
-Lagom.js is built against specific versions of Lagom.
+Lagom.js is built against specific versions of Lagom:
 
 | Lagom.js    | Lagom | Scala           | Scala.js |
 |-------------|-------|-----------------|----------|
@@ -32,15 +32,13 @@ This provides the JavaScript implementation of the Lagom service API. To use it 
 as a JVM and JS cross project. Then, add the `lagomjs-scaladsl-api` dependency to the JS platform: 
 
 ```scala
-val lagomjsScaladslApi = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-1.5.1-SNAPSHOT"
-
 lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
   .jvmSettings(
     libraryDependencies += lagomScaladslApi
   )
   .jsSettings(
-    libraryDependencies += lagomjsScaladslApi
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.1.0-1.5.1-SNAPSHOT"
   )
 ```
 
@@ -53,11 +51,9 @@ The second artifact is `lagomjs-scaladsl-client`:
 This provides the JavaScript implementation of the Lagom service client. You can use it in a Scala.js project along with your service API to generate a service client:
 
 ```scala
-val lagomjsScaladslClient = "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.1-SNAPSHOT"
-
 lazy val `client-js` = project
   .settings(
-    libraryDependencies += lagomjsScaladslClient
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.1-SNAPSHOT"
   )
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(`service-api`.js)
