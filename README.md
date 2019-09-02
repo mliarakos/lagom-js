@@ -47,7 +47,7 @@ lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
   )
 ```
 
-This enables a Lagom service definition to be compiled into JavaScript. In addition, domain objects, service requests and responses, and custom exceptions are also compiled into JavaScript. This makes the entire service API available in JavaScript.
+This enables your Lagom service definition to be compiled into JavaScript. In addition, your domain objects, service requests and responses, and custom exceptions are also compiled into JavaScript. This makes your entire service API available in JavaScript.
 
 ### Service Client
 
@@ -68,7 +68,7 @@ lazy val `client-js` = project
   .dependsOn(`service-api`.js)
 ```
 
-The service client can be used to interact with the service by making service calls, just as you normally would in Scala. Since the entire service API is available in JavaScript you have everything you need to create requests and understand responses.
+The service client can be used to interact with your service by making service calls, just as you normally would in Scala. Since the entire service API is available in JavaScript you have everything you need to create requests and understand responses.
 
 ## Features
 
