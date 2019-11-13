@@ -51,7 +51,8 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
           queryParams
             .flatMap {
               case (name, values) =>
-                values.map(value => URLEncoder.encode(name, "utf-8") + "=" + URLEncoder.encode(value, "utf-8"))
+                // URLEncoder is implemented by akka.js, which expects an uppercase UTF-8 compared to the case insensitive JVM as used in the original lagom sources
+                values.map(value => URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8"))
             }
             .mkString("?", "&", "")
         } else ""
