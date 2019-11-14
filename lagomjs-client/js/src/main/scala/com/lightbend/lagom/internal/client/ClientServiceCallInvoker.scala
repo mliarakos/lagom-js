@@ -51,7 +51,7 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
           queryParams
             .flatMap {
               case (name, values) =>
-                values.map(value => URLEncoder.encode(name, "utf-8") + "=" + URLEncoder.encode(value, "utf-8"))
+                values.map(value => URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8"))
             }
             .mkString("?", "&", "")
         } else ""
