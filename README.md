@@ -47,7 +47,7 @@ This enables your Lagom service definition to be compiled into JavaScript. In ad
 The `lagomjs-scaladsl-client` artifact provides the JavaScript implementation of the Lagom service client:
 
 ```sbt
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.0-1.5.3"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.1.1-1.5.3"
 ```
 
 You can use it in a Scala.js project along with your service API to generate a service client:
