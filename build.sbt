@@ -6,10 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 val scalaVersions = Seq("2.12.10")
 
 val baseLagomVersion = "1.6.0"
-// TODO: update to final version and remove snapshot resolver
-val akkaJsVersion    = "1.2.6.1-RC1-SNAPSHOT"
-ThisBuild / resolvers += Resolver.sonatypeRepo("snapshots")
-
+val akkaJsVersion    = "2.2.6.1"
 
 lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
