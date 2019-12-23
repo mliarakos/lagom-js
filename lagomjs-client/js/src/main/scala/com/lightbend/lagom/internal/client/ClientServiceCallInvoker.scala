@@ -13,6 +13,7 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
+import com.lightbend.lagom.internal.api.HeaderUtils
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
 import org.scalajs.dom.XMLHttpRequest
 import org.scalajs.dom.ext.Ajax
@@ -20,7 +21,6 @@ import org.scalajs.dom.ext.AjaxException
 import play.api.http.HeaderNames
 import play.api.libs.streams.AkkaStreams
 
-import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
@@ -51,8 +51,7 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
           queryParams
             .flatMap {
               case (name, values) =>
-                // URLEncoder is implemented by akka.js, which expects an uppercase UTF-8 compared to the case insensitive JVM as used in the original lagom sources
-                values.map(value => URLEncoder.encode(name, "UTF-8") + "=" + URLEncoder.encode(value, "UTF-8"))
+                values.map(value => URLEncoder.encode(name, "utf-8") + "=" + URLEncoder.encode(value, "utf-8"))
             }
             .mkString("?", "&", "")
         } else ""
@@ -80,7 +79,6 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
 
         val result: Future[(ResponseHeader, Response)] =
           (requestSerializerStreamed, responseSerializerStreamed) match {
-
             case (false, false) =>
               makeStrictCall(
                 headerFilterTransformClientRequest(headerFilter, requestHeader),
@@ -134,7 +132,6 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
       responseSerializer: MessageSerializer[_, AkkaStreamsSource[ByteString, NotUsed]],
       request: Request
   ): Future[(ResponseHeader, Response)] = {
-
     val serializer = messageSerializerSerializerForRequest[Request, ByteString](requestSerializer)
 
     // We have a single source, followed by a maybe source (that is, a source that never produces any message, and
@@ -164,7 +161,6 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
       responseSerializer: MessageSerializer[Response, ByteString],
       request: Request
   ): Future[(ResponseHeader, Response)] = {
-
     val negotiatedSerializer = messageSerializerSerializerForRequest(
       requestSerializer
         .asInstanceOf[MessageSerializer[AkkaStreamsSource[Any, NotUsed], AkkaStreamsSource[ByteString, NotUsed]]]
@@ -199,7 +195,6 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
       responseSerializer: MessageSerializer[_, AkkaStreamsSource[ByteString, NotUsed]],
       request: Request
   ): Future[(ResponseHeader, Response)] = {
-
     val negotiatedSerializer = messageSerializerSerializerForRequest(
       requestSerializer
         .asInstanceOf[MessageSerializer[AkkaStreamsSource[Any, NotUsed], AkkaStreamsSource[ByteString, NotUsed]]]
@@ -299,7 +294,7 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
         val contentTypeHeader = headers.get(HeaderNames.CONTENT_TYPE).map(_.mkString(", "))
         val protocol          = messageProtocolFromContentTypeHeader(contentTypeHeader)
         val responseHeaders = headers.map {
-          case (key, values) => key.toLowerCase -> values.map(key -> _).to[immutable.Seq]
+          case (key, values) => HeaderUtils.normalize(key) -> values.map(key -> _).toIndexedSeq
         }
         val transportResponseHeader = newResponseHeader(status, protocol, responseHeaders)
         val responseHeader          = headerFilterTransformClientResponse(headerFilter, transportResponseHeader, requestHeader)
@@ -333,5 +328,4 @@ private object ClientServiceCallInvoker {
       })
       .toMap
   }
-
 }

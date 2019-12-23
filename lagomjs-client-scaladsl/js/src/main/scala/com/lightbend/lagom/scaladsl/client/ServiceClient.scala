@@ -149,7 +149,7 @@ abstract class LagomClientApplication(
     classLoader: ClassLoader = new ClassLoader() {}
 ) extends LagomServiceClientComponents
     with LagomConfigComponent {
-  override lazy val serviceInfo: ServiceInfo = ServiceInfo(clientName, Map.empty)
+  override lazy val serviceInfo: ServiceInfo = ServiceInfo(clientName, immutable.Seq.empty)
   override lazy val environment: Environment = Environment(new File("."), classLoader, Mode.Prod)
   // TODO: load configuration
   lazy val configuration: Configuration = Configuration.empty
