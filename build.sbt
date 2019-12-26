@@ -3,10 +3,10 @@ import sbt.Keys.version
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val scalaVersions = Seq("2.12.9", "2.11.12")
+val scalaVersions = Seq("2.12.10")
 
-val baseLagomVersion = "1.5.5"
-val akkaJsVersion    = "1.2.5.23"
+val baseLagomVersion = "1.6.0"
+val akkaJsVersion    = "2.2.6.1"
 
 lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
@@ -49,7 +49,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := s"0.1.2-$baseLagomVersion-SNAPSHOT"
+  version := s"0.2.0-$baseLagomVersion-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
@@ -125,6 +125,9 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
         lagomTargetDirectory.value / "service" / "core" / "api" / "src" / "main" / "scala",
         sourceTarget
       )
+
+      val jsSources = sourceDirectory.value / "main" / "scala"
+      applyOverrides(sourceTarget, jsSources)
     },
     cleanLagomLibrary := { IO.delete(lagomTargetDirectory.value) }
   )
@@ -134,7 +137,7 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
       "org.akka-js"            %%% "akkajsactor"              % akkaJsVersion,
       "org.akka-js"            %%% "akkajsactorstream"        % akkaJsVersion,
       "org.scala-lang.modules" %%% "scala-parser-combinators" % "1.1.2",
-      "com.typesafe.play"      %%% "play-json"                % "2.7.4"
+      "com.typesafe.play"      %%% "play-json"                % "2.8.1"
     )
   )
   .jsSettings(
@@ -178,7 +181,7 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .jsSettings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-      "org.scalatest"  %%% "scalatest"   % "3.0.5"            % Test
+      "org.scalatest"  %%% "scalatest"   % "3.0.8"            % Test
     )
   )
   .jsSettings(
@@ -264,7 +267,7 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test
+      "org.scalatest" %%% "scalatest" % "3.0.8" % Test
     )
   )
   .jsSettings(

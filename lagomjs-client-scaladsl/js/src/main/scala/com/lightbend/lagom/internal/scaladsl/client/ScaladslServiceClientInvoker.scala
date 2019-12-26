@@ -12,12 +12,12 @@ import com.lightbend.lagom.internal.api.Path
 import com.lightbend.lagom.internal.client.ClientServiceCallInvoker
 import com.lightbend.lagom.internal.scaladsl.api.ScaladslPath
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactory
+import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.Descriptor.Call
 import com.lightbend.lagom.scaladsl.api.Descriptor.RestCallId
 import com.lightbend.lagom.scaladsl.api.Descriptor.TopicCall
 import com.lightbend.lagom.scaladsl.api.ServiceSupport.ScalaMethodServiceCall
 import com.lightbend.lagom.scaladsl.api.ServiceSupport.ScalaMethodTopic
-import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.broker.Topic
 import com.lightbend.lagom.scaladsl.api.deser._
 import com.lightbend.lagom.scaladsl.api.transport.Method
@@ -40,10 +40,8 @@ private[lagom] class ScaladslServiceClient(
     topicFactory: Option[TopicFactory]
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends ServiceClientConstructor {
-
   private val ctx: ServiceClientImplementationContext = new ServiceClientImplementationContext {
     override def resolve(unresolvedDescriptor: Descriptor): ServiceClientContext = new ServiceClientContext {
-
       val descriptor = serviceResolver.resolve(unresolvedDescriptor)
 
       val serviceCalls: Map[String, ScalaServiceCall] = descriptor.calls.map { call =>
@@ -123,7 +121,6 @@ private class ScaladslClientServiceCall[Request, ResponseMessage, ServiceCallRes
     responseHandler: (ResponseHeader, ResponseMessage) => ServiceCallResponse
 )(implicit ec: ExecutionContext)
     extends ServiceCall[Request, ServiceCallResponse] {
-
   override def invoke(request: Request): Future[ServiceCallResponse] = {
     invoker.doInvoke(request, requestHeaderHandler).map(responseHandler.tupled)
   }
@@ -154,7 +151,6 @@ private class ScaladslClientServiceCallInvoker[Request, Response](
 )(implicit ec: ExecutionContext, mat: Materializer)
     extends ClientServiceCallInvoker[Request, Response](serviceInfo.serviceName, path, queryParams)
     with ScaladslServiceApiBridge {
-
   protected override def doMakeStreamedCall(
       requestStream: Source[ByteString, NotUsed],
       requestSerializer: NegotiatedSerializer[_, _],
@@ -212,5 +208,4 @@ private[lagom] class ScaladslServiceResolver(defaultExceptionSerializer: Excepti
         }
     }
   }
-
 }

@@ -16,7 +16,6 @@ object ContentTypes extends ContentTypes
 
 /** Defines common HTTP Content-Type header values, according to the current available Codec. */
 trait ContentTypes {
-
   import play.api.mvc.Codec
 
   /**
@@ -78,7 +77,6 @@ trait ContentTypes {
    * @return the `codec` charset appended to `mimeType`
    */
   def withCharset(mimeType: String)(implicit codec: Codec) = s"$mimeType; charset=${codec.charset}"
-
 }
 
 /**
@@ -104,7 +102,6 @@ object MimeTypes extends MimeTypes
 
 /** Common HTTP MIME types */
 trait MimeTypes {
-
   /**
    * Content-Type of text.
    */
@@ -126,7 +123,7 @@ trait MimeTypes {
   val XML = "application/xml"
 
   /**
-   * Content-Type of xml.
+   * Content-Type of xhtml.
    */
   val XHTML = "application/xhtml+xml"
 
@@ -159,7 +156,6 @@ trait MimeTypes {
    * Content-Type of application cache.
    */
   val CACHE_MANIFEST = "text/cache-manifest"
-
 }
 
 /**
@@ -179,7 +175,6 @@ object Status extends Status {
  * See <a href="https://tools.ietf.org/html/rfc7231">RFC 7231</a> and <a href="https://tools.ietf.org/html/rfc6585">RFC 6585</a>.
  */
 trait Status {
-
   val CONTINUE            = 100
   val SWITCHING_PROTOCOLS = 101
 
@@ -227,8 +222,6 @@ trait Status {
   val PRECONDITION_REQUIRED           = 428
   val TOO_MANY_REQUESTS               = 429
   val REQUEST_HEADER_FIELDS_TOO_LARGE = 431
-  @deprecated("Use TOO_MANY_REQUESTS instead", "2.6.0")
-  val TOO_MANY_REQUEST = TOO_MANY_REQUESTS
 
   val INTERNAL_SERVER_ERROR           = 500
   val NOT_IMPLEMENTED                 = 501
@@ -245,7 +238,6 @@ object HeaderNames extends HeaderNames
 
 /** Defines all standard HTTP headers. */
 trait HeaderNames {
-
   val ACCEPT          = "Accept"
   val ACCEPT_CHARSET  = "Accept-Charset"
   val ACCEPT_ENCODING = "Accept-Encoding"
@@ -360,6 +352,7 @@ trait HttpProtocol {
   // Versions
   val HTTP_1_0 = "HTTP/1.0"
   val HTTP_1_1 = "HTTP/1.1"
+  val HTTP_2_0 = "HTTP/2.0"
 
   // Other HTTP protocol values
   val CHUNKED = "chunked"
