@@ -5,8 +5,10 @@
 package com.lightbend.lagom.scaladsl.client
 
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
+import akka.actor.CoordinatedShutdown
 import akka.stream.ActorMaterializer
 import akka.stream.Materializer
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactoryProvider
@@ -23,7 +25,9 @@ import play.api.Environment
 import play.api.Mode
 
 import scala.collection.immutable
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.Duration
 import scala.language.experimental.macros
 
 /**
@@ -191,10 +195,21 @@ abstract class StandaloneLagomClientFactory(
     classLoader: ClassLoader = new ClassLoader() {}
 ) extends LagomClientFactory(clientName, classLoader) {
   // TODO: create compatibility layer for ActorSystemProvider?
-  override lazy val actorSystem: ActorSystem   = ActorSystem("default", configuration.underlying, environment.classLoader)
-  override lazy val materializer: Materializer = ActorMaterializer.create(actorSystem)
-  // TODO: investigate using CoordinatedShutdown
+  override lazy val actorSystem: ActorSystem        = ActorSystem("default", configuration.underlying, environment.classLoader)
+  lazy val coordinatedShutdown: CoordinatedShutdown = CoordinatedShutdown(actorSystem)
+  override lazy val materializer: Materializer      = ActorMaterializer.create(actorSystem)
+
+  /**
+   * Stop this [[LagomClientFactory]] by shutting down the internal [[akka.actor.ActorSystem]] and Akka Streams [[akka.stream.Materializer]].
+   */
+  override def stop(): Unit = {
+    val stopped         = coordinatedShutdown.run(ClientStoppedReason)
+    val shutdownTimeout = coordinatedShutdown.totalTimeout() + Duration(5, TimeUnit.SECONDS)
+    Await.result(stopped, shutdownTimeout)
+  }
 }
+
+case object ClientStoppedReason extends CoordinatedShutdown.Reason
 
 /**
  * Convenience for constructing service clients in a non Lagom server application.
@@ -247,9 +262,7 @@ abstract class LagomClientFactory(
   override lazy val environment: Environment = Environment(new File("."), classLoader, Mode.Prod)
 
   // TODO: load configuration
-  lazy val configuration: Configuration = Configuration.empty
-
-  // TODO: investigate using ApplicationLifecycle
+  lazy val configuration: Configuration                = Configuration.empty
   override lazy val executionContext: ExecutionContext = actorSystem.dispatcher
 
   /**
@@ -257,10 +270,6 @@ abstract class LagomClientFactory(
    *
    * For example, when implementing your own [[LagomClientFactory]], you may choose to reuse an existing [[akka.actor.ActorSystem]],
    * but use a internal [[akka.stream.Materializer]]. In which case, you can use this method to only shutdown the [[akka.stream.Materializer]].
-   *
-   * If you override this method, make sure you also release the internally managed resources
-   * by calling [[#releaseInternalResources()]] method.
-   *
    */
-  def stop(): Unit = actorSystem.terminate()
+  def stop(): Unit = {}
 }
