@@ -71,7 +71,7 @@ The service client can be used to interact with your service by making service c
 Lagom.js supports cross compiling the full Lagom service API into JavaScript. However, the service client does not support all the features available in Lagom. The service client supports:
 - all the service call definitions: `call`, `namedCall`, `pathCall`, `restCall`
 - serialization of service requests and responses using `play-json`
-- streaming service requests and responses using `akka.js` and WebSockets
+- streaming service requests and responses using [Akka.js](https://github.com/akka-js/akka.js) and WebSockets
 
 The service client does not support:
 - circuit breakers: the circuit breaker configuration in the service definition is available, but is ignored and all service calls are invoked without circuit breakers
