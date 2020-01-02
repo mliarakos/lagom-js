@@ -49,7 +49,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := s"0.2.1-$baseLagomVersion"
+  version := s"0.2.2-$baseLagomVersion-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
