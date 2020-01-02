@@ -5,7 +5,6 @@
 package com.lightbend.lagom.scaladsl.client
 
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import akka.actor.CoordinatedShutdown
@@ -25,9 +24,7 @@ import play.api.Environment
 import play.api.Mode
 
 import scala.collection.immutable
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration.Duration
 import scala.language.experimental.macros
 
 /**
@@ -201,11 +198,12 @@ abstract class StandaloneLagomClientFactory(
 
   /**
    * Stop this [[LagomClientFactory]] by shutting down the internal [[akka.actor.ActorSystem]] and Akka Streams [[akka.stream.Materializer]].
+   *
+   * The stop is executed asynchronously because there is no blocking in JavaScript. Unlike standard Lagom this method
+   * does not try to wait for the stop to complete.
    */
   override def stop(): Unit = {
-    val stopped         = coordinatedShutdown.run(ClientStoppedReason)
-    val shutdownTimeout = coordinatedShutdown.totalTimeout() + Duration(5, TimeUnit.SECONDS)
-    Await.result(stopped, shutdownTimeout)
+    coordinatedShutdown.run(ClientStoppedReason)
   }
 }
 
