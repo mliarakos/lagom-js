@@ -10,7 +10,7 @@ Lagom.js is built against specific versions of Lagom:
 
 | Lagom.js    | Lagom | Scala           | Scala.js |
 |-------------|-------|-----------------|----------|
-| 0.1.1-1.5.1 | 1.5.1 | 2.11 <br> 2.12  | 0.6.24+  |
+| 0.1.2-1.5.1 | 1.5.1 | 2.11 <br> 2.12  | 0.6.31+  |
 
 Lagom.js does not support the Lagom Java API. It only supports the Lagom Scala API because Scala.js only supports Scala.
 
