@@ -7,11 +7,21 @@ package play.api
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 
+import scala.collection.JavaConverters._
+
 /*
  * Skeleton of play.api.Configuration removing all functionality for JS compatibility.
  */
 case class Configuration(underlying: Config)
 
 object Configuration {
+  def load(directSettings: Map[String, Any], defaultConfig: Config): Configuration = {
+    val directConfig   = ConfigFactory.parseMap(directSettings.asJava)
+    val combinedConfig = directConfig.withFallback(defaultConfig)
+    val resolvedConfig = ConfigFactory.load(combinedConfig)
+
+    Configuration(resolvedConfig)
+  }
+
   def empty = Configuration(ConfigFactory.empty())
 }

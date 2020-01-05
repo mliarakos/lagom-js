@@ -54,7 +54,8 @@ lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
 )
 
 lazy val commonJsSettings = Seq(
-  scalacOptions += "-P:scalajs:sjsDefinedByDefault"
+  scalacOptions += "-P:scalajs:sjsDefinedByDefault",
+  jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
 )
 
 lazy val lagomVersion         = settingKey[String]("The Lagom version to use.")
@@ -232,6 +233,12 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
         sourceTarget
       )
 
+      val resourcesTarget = file("lagomjs-client") / "js" / "src" / "main" / "resources"
+      copyToSourceDirectory(
+        lagomTargetDirectory.value / "service" / "core" / "client" / "src" / "main" / "resources",
+        resourcesTarget
+      )
+
       val jsSources = sourceDirectory.value / "main" / "scala"
       applyOverrides(sourceTarget, jsSources)
     },
@@ -292,12 +299,14 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(
     compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    compile in Compile := { (compile in Compile).dependsOn(shoconConcat).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
   .jsConfigure(
     _.dependsOn(`lagomjs-client`.js, `lagomjs-api-scaladsl`.js, `lagomjs-macro-testkit`.js % Test)
   )
+  .enablePlugins(ShoconPlugin)
 
 lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
   .withoutSuffixFor(JSPlatform)
