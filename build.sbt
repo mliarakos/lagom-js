@@ -54,8 +54,8 @@ lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
 )
 
 lazy val commonJsSettings = Seq(
-  scalacOptions += "-P:scalajs:sjsDefinedByDefault",
-  jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
+  jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
+  scalacOptions += "-P:scalajs:sjsDefinedByDefault"
 )
 
 lazy val lagomVersion         = settingKey[String]("The Lagom version to use.")
