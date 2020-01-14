@@ -8,14 +8,12 @@ import akka.actor.ActorSystem
 import akka.pattern.CircuitBreakerOpenException
 import com.lightbend.lagom.internal.spi.CircuitBreakerMetricsProvider
 import com.typesafe.config.ConfigFactory
-import org.scalatest.concurrent.Futures
 import org.scalatest.AsyncFlatSpec
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.Matchers
+import org.scalatest.concurrent.Futures
 
 import scala.concurrent.Future
-import scala.util.Failure
-import scala.util.Success
 
 class CircuitBreakersPanelInternalSpec extends AsyncFlatSpec with Matchers with BeforeAndAfterAll with Futures {
   val actorSystem = ActorSystem("CircuitBreakersPanelInternalSpec")
@@ -57,17 +55,11 @@ class CircuitBreakersPanelInternalSpec extends AsyncFlatSpec with Matchers with 
 
     // Expect a CircuitBreakerOpenException
     recoverToSucceededIf[CircuitBreakerOpenException] {
-      val y =
-        for {
-          _ <- successfulCall(panel, "123")
-          _ <- failedCall(panel, new FakeException("boo"))
-          x <- successfulCall(panel, "456")
-        } yield x
-      y.onComplete({
-        case Failure(exception) => exception.printStackTrace()
-        case Success(value)     =>
-      })
-      y
+      for {
+        _ <- successfulCall(panel, "123")
+        _ <- failedCall(panel, new FakeException("boo"))
+        x <- successfulCall(panel, "456")
+      } yield x
     }
   }
 
