@@ -1,6 +1,7 @@
 package com.lightbend.lagom.internal.client
 
 import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 import akka.actor.ActorSystem
@@ -33,8 +34,14 @@ class CircuitBreakerMetricsImpl(val breakerId: String, provider: CircuitBreakerM
     extends CircuitBreakerMetrics {
   import CircuitBreakerMetricsImpl._
 
-  private val log        = org.scalajs.dom.console
-  private val stateValue = new AtomicReference[String](Closed)
+  private val log          = org.scalajs.dom.console
+  private val successValue = new AtomicLong(0L)
+  private val failureValue = new AtomicLong(0L)
+  private val stateValue   = new AtomicReference[String](Closed)
+
+  def successCount: Long = successValue.get()
+  def failureCount: Long = failureValue.get()
+  def state: String      = stateValue.get()
 
   override def onOpen(): Unit = {
     stateValue.compareAndSet(Closed, Open)
@@ -54,23 +61,38 @@ class CircuitBreakerMetricsImpl(val breakerId: String, provider: CircuitBreakerM
   }
 
   override def onCallSuccess(elapsedNanos: Long): Unit = {
-    // TODO: implement
+//    updateThroughput()
+//    updateLatency(elapsedNanos)
+    updateSuccessCount()
   }
 
   override def onCallFailure(elapsedNanos: Long): Unit = {
-    // TODO: implement
+//    updateThroughput()
+//    updateFailureThroughput()
+//    updateLatency(elapsedNanos)
+    updateFailureCount()
   }
 
   override def onCallTimeoutFailure(elapsedNanos: Long): Unit = {
-    // TODO: implement
+//    updateThroughput()
+//    updateFailureThroughput()
+//    updateLatency(elapsedNanos)
+    updateFailureCount()
   }
 
   override def onCallBreakerOpenFailure(): Unit = {
-    // TODO: implement
+//    updateThroughput()
+//    updateFailureThroughput()
+    updateFailureCount()
   }
 
   override def stop(): Unit = {
-    // TODO: implement
     provider.remove(this)
   }
+
+  private def updateSuccessCount(): Unit =
+    successValue.incrementAndGet()
+
+  private def updateFailureCount(): Unit =
+    failureValue.incrementAndGet()
 }
