@@ -3,4 +3,15 @@
 
 target/
 
+lagomjs-api/shared/
+lagomjs-api-scaladsl/shared/
+lagomjs-client/shared/
+lagomjs-client/js/src/main/resources/
+lagomjs-client-scaladsl/shared/
+lagomjs-macro-testkit/shared/
+lagomjs-persistence-scaladsl/shared/
+
+node_modules/
+package-lock.json
+
 .idea
