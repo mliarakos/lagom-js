@@ -15,7 +15,7 @@ Lagom.js is built against specific versions of Lagom:
 | 0.1.2-1.5.4 | 1.5.4 | 2.11 <br> 2.12  | 0.6.31+  |
 | 0.1.2-1.5.5 | 1.5.5 | 2.11 <br> 2.12  | 0.6.31+  |
 | 0.2.1-1.6.0 | 1.6.0 | 2.12            | 0.6.31+  |
-| 0.2.1-1.6.1 | 1.6.1 | 2.12            | 0.6.32+  |
+| 0.3.0-1.6.1 | 1.6.1 | 2.12            | 0.6.32+  |
 
 Lagom.js does not support the Lagom Java API. It only supports the Lagom Scala API because Scala.js only supports Scala.
 
@@ -28,7 +28,7 @@ Lagom.js provides JavaScript versions of several Lagom artifacts. The two most i
 The `lagomjs-scaladsl-api` artifact provides the JavaScript implementation of the Lagom service API:
 
 ```sbt
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.2.1-1.6.1"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.0-1.6.1"
 ```
 
 To use it you'll need to configure your service API as a [Scala.js cross project](https://github.com/portable-scala/sbt-crossproject) for the JVM and JS platforms. Then, add the `lagomjs-scaladsl-api` dependency to the JS platform:
@@ -40,7 +40,7 @@ lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += lagomScaladslApi
   )
   .jsSettings(
-    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.2.1-1.6.1"
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.0-1.6.1"
   )
 ```
 
@@ -51,7 +51,7 @@ This enables your Lagom service definition to be compiled into JavaScript. In ad
 The `lagomjs-scaladsl-client` artifact provides the JavaScript implementation of the Lagom service client:
 
 ```sbt
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.2.1-1.6.1"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.0-1.6.1"
 ```
 
 You can use it in a Scala.js project along with your service API to generate a service client:
@@ -59,7 +59,7 @@ You can use it in a Scala.js project along with your service API to generate a s
 ```scala
 lazy val `client-js` = project
   .settings(
-    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.2.1-1.6.1"
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.0-1.6.1"
   )
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(`service-api`.js)
@@ -69,12 +69,14 @@ The service client can be used to interact with your service by making service c
 
 ## Features
 
-Lagom.js supports cross compiling the full Lagom service API into JavaScript. However, the service client does not support all the features available in Lagom. The service client supports:
+Lagom.js supports cross compiling the full Lagom service API into JavaScript. The service client supports almost all features available in Lagom:
 - all the service call definitions: `call`, `namedCall`, `pathCall`, `restCall`
 - serialization of service requests and responses using `play-json`
 - streaming service requests and responses using [Akka.js](https://github.com/akka-js/akka.js) and WebSockets
+- circuit breakers with basic metrics
+- all the built-in service locators: `ConfigurationServiceLocator`, `StaticServiceLocator` and `RoundRobinServiceLocator`
 
-The service client does not support:
-- circuit breakers: the circuit breaker configuration in the service definition is available, but is ignored and all service calls are invoked without circuit breakers
-- subscribing to topics: the topic definition in the service client is available, but attempting to subscribe to the topic throws an exception
-- the full range of service locators: the only available `ServiceLocator` implementations are `StaticServiceLocator` and `RoundRobinServiceLocator`
+However, the service client does not support a few the features available in Lagom:
+- full circuit breaker metrics: circuit breakers are fully supported, but the built-in circuit breaker metrics implementation only collects a few basic metrics
+- subscribing to topics: topic definitions are available in the service client, but attempting to subscribe to the topic throws an exception
+- advanced service locators: service locators outside of the built-in service locators, such as `AkkaDiscoveryServiceLocator`, are not available
