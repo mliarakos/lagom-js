@@ -5,7 +5,7 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
 val scalaVersions = Seq("2.12.10")
 
-val baseLagomVersion = "1.6.0"
+val baseLagomVersion = "1.6.1"
 val akkaJsVersion    = "2.2.6.1"
 
 lazy val scalaSettings = Seq(
@@ -49,7 +49,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := s"0.2.2-$baseLagomVersion-SNAPSHOT"
+  version := s"0.2.1-$baseLagomVersion-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
