@@ -221,7 +221,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "0.9.8"
+      "org.scala-js" %%% "scalajs-dom" % "1.0.0"
     )
   )
   .jsSettings(
