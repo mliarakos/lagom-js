@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2019 Lightbend Inc. <https://www.lightbend.com>
+ * Copyright (C) Lightbend Inc. <https://www.lightbend.com>
  */
 
 /*
@@ -102,6 +102,7 @@ object MimeTypes extends MimeTypes
 
 /** Common HTTP MIME types */
 trait MimeTypes {
+
   /**
    * Content-Type of text.
    */
