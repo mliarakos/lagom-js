@@ -16,7 +16,8 @@ lazy val scalaSettings = Seq(
     "utf8",
     "-deprecation",
     "-feature",
-    "-unchecked"
+    "-unchecked",
+    "-Xlog-reflective-calls"
   )
 )
 
