@@ -10,15 +10,18 @@ import akka.actor.ActorSystem
 import akka.actor.CoordinatedShutdown
 import akka.stream.ActorMaterializer
 import akka.stream.Materializer
+import com.lightbend.lagom.internal.client.CircuitBreakerMetricsProviderImpl
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactoryProvider
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslClientMacroImpl
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslServiceClient
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslServiceResolver
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslWebSocketClient
+import com.lightbend.lagom.internal.spi.CircuitBreakerMetricsProvider
 import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.broker.Topic
 import com.lightbend.lagom.scaladsl.api.deser.DefaultExceptionSerializer
 import com.lightbend.lagom.scaladsl.api.deser.ExceptionSerializer
+import com.typesafe.config.ConfigFactory
 import play.api.Configuration
 import play.api.Environment
 import play.api.Mode
@@ -125,6 +128,10 @@ trait LagomServiceClientComponents extends TopicFactoryProvider { self: LagomCon
   def actorSystem: ActorSystem
   def executionContext: ExecutionContext
   def environment: Environment
+
+  lazy val circuitBreakerMetricsProvider: CircuitBreakerMetricsProvider = new CircuitBreakerMetricsProviderImpl(
+    actorSystem
+  )
 
   lazy val serviceResolver: ServiceResolver                = new ScaladslServiceResolver(defaultExceptionSerializer)
   lazy val defaultExceptionSerializer: ExceptionSerializer = new DefaultExceptionSerializer(environment)
@@ -259,8 +266,7 @@ abstract class LagomClientFactory(
   override lazy val serviceInfo: ServiceInfo = ServiceInfo(clientName, immutable.Seq.empty)
   override lazy val environment: Environment = Environment(new File("."), classLoader, Mode.Prod)
 
-  // TODO: load configuration
-  lazy val configuration: Configuration                = Configuration.empty
+  lazy val configuration: Configuration                = Configuration.load(Map.empty, ConfigFactory.load())
   override lazy val executionContext: ExecutionContext = actorSystem.dispatcher
 
   /**

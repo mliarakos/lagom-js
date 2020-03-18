@@ -1,27 +1,43 @@
+/*
+ * Copyright (C) Lightbend Inc. <https://www.lightbend.com>
+ */
+
 package com.lightbend.lagom.scaladsl.client
 
 import java.net.URI
 import java.util.concurrent.atomic.AtomicInteger
 
+import akka.actor.ActorSystem
+import com.lightbend.lagom.internal.client.CircuitBreakerConfig
+import com.lightbend.lagom.internal.client.ConfigExtensions
+import com.lightbend.lagom.internal.scaladsl.client.CircuitBreakersPanelImpl
+import com.lightbend.lagom.internal.spi.CircuitBreakerMetricsProvider
 import com.lightbend.lagom.scaladsl.api.Descriptor.Call
+import com.lightbend.lagom.scaladsl.api.CircuitBreaker
 import com.lightbend.lagom.scaladsl.api.Descriptor
 import com.lightbend.lagom.scaladsl.api.LagomConfigComponent
 import com.lightbend.lagom.scaladsl.api.ServiceLocator
+import com.typesafe.config.Config
 
 import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
-trait AbstractComponents extends LagomConfigComponent {
-  def executionContext: ExecutionContext
-}
-
-abstract class AbstractServiceLocator(implicit ec: ExecutionContext) extends ServiceLocator {
+/**
+ * Abstract service locator that provides circuit breaking.
+ *
+ * Generally, only the [[ServiceLocator.locate()]] method needs to be implemented, however
+ * [[doWithServiceImpl()]] can be overridden if the service locator wants to
+ * handle failures in some way.
+ */
+abstract class CircuitBreakingServiceLocator(circuitBreakers: CircuitBreakersPanel)(implicit ec: ExecutionContext)
+    extends ServiceLocator {
 
   /**
    * Do the given block with the given service looked up.
    *
-   * This is invoked by [[doWithService()]].
+   * This is invoked by [[doWithService()]], after wrapping the passed in block
+   * in a circuit breaker if configured to do so.
    *
    * The default implementation just delegates to the [[locate()]] method, but this method
    * can be overridden if the service locator wants to inject other behaviour after the service call is complete.
@@ -43,41 +59,119 @@ abstract class AbstractServiceLocator(implicit ec: ExecutionContext) extends Ser
   final override def doWithService[T](name: String, serviceCall: Call[_, _])(
       block: (URI) => Future[T]
   )(implicit ec: ExecutionContext): Future[Option[T]] = {
-    doWithServiceImpl(name, serviceCall)(block)
+    serviceCall.circuitBreaker
+      .filter(_ != CircuitBreaker.None)
+      .map { cb =>
+        val circuitBreakerId = cb match {
+          case cbid: CircuitBreaker.CircuitBreakerId => cbid.id
+          case _                                     => name
+        }
+
+        doWithServiceImpl(name, serviceCall) { uri =>
+          circuitBreakers.withCircuitBreaker(circuitBreakerId)(block(uri))
+        }
+      }
+      .getOrElse {
+        doWithServiceImpl(name, serviceCall)(block)
+      }
+  }
+}
+
+/**
+ * Components required for circuit breakers.
+ */
+trait CircuitBreakerComponents extends LagomConfigComponent {
+  def actorSystem: ActorSystem
+  def executionContext: ExecutionContext
+  def circuitBreakerMetricsProvider: CircuitBreakerMetricsProvider
+
+  lazy val circuitBreakerConfig: CircuitBreakerConfig = new CircuitBreakerConfig(config)
+
+  lazy val circuitBreakersPanel: CircuitBreakersPanel =
+    new CircuitBreakersPanelImpl(actorSystem, circuitBreakerConfig, circuitBreakerMetricsProvider)
+}
+
+/**
+ * Components for using the configuration service locator.
+ */
+trait ConfigurationServiceLocatorComponents extends CircuitBreakerComponents {
+  lazy val serviceLocator: ServiceLocator =
+    new ConfigurationServiceLocator(config, circuitBreakersPanel)(executionContext)
+}
+
+/**
+ * A service locator that uses static configuration.
+ */
+class ConfigurationServiceLocator(config: Config, circuitBreakers: CircuitBreakersPanel)(implicit ec: ExecutionContext)
+    extends CircuitBreakingServiceLocator(circuitBreakers) {
+  private val LagomServicesKey: String = "lagom.services"
+
+  private val services = {
+    if (config.hasPath(LagomServicesKey)) {
+      val lagomServicesConfig = config.getConfig(LagomServicesKey)
+      import scala.collection.JavaConverters._
+
+      (for {
+        key <- lagomServicesConfig.root.keySet.asScala
+      } yield {
+        try {
+          val uris = ConfigExtensions.getStringList(lagomServicesConfig, key).asScala
+          key -> uris.map(URI.create).toList
+        } catch {
+          case e: IllegalArgumentException =>
+            throw new IllegalStateException(
+              "Error loading configuration for ConfigurationServiceLocator. " +
+                s"Expected lagom.services.$key to be a URI, but it failed to parse",
+              e
+            )
+        }
+      }).toMap
+    } else {
+      Map.empty[String, List[URI]]
+    }
   }
 
+  override def locate(name: String, serviceCall: Call[_, _]) =
+    locateAll(name, serviceCall).map(_.headOption)
+
+  override def locateAll(name: String, serviceCall: Call[_, _]): Future[List[URI]] =
+    Future.successful(services.getOrElse(name, Nil))
 }
 
 /**
  * Components for using the static service locator.
  */
-trait StaticServiceLocatorComponents extends AbstractComponents {
+trait StaticServiceLocatorComponents extends CircuitBreakerComponents {
   def staticServiceUri: URI
 
-  lazy val serviceLocator: ServiceLocator = new StaticServiceLocator(staticServiceUri)(executionContext)
+  lazy val serviceLocator: ServiceLocator =
+    new StaticServiceLocator(staticServiceUri, circuitBreakersPanel)(executionContext)
 }
 
 /**
  * A static service locator, that always resolves the same URI.
  */
-class StaticServiceLocator(uri: URI)(implicit ec: ExecutionContext) extends AbstractServiceLocator {
+class StaticServiceLocator(uri: URI, circuitBreakers: CircuitBreakersPanel)(implicit ec: ExecutionContext)
+    extends CircuitBreakingServiceLocator(circuitBreakers) {
   override def locate(name: String, serviceCall: Call[_, _]): Future[Option[URI]] = Future.successful(Some(uri))
 }
 
 /**
  * Components for using the round robin service locator.
  */
-trait RoundRobinServiceLocatorComponents extends AbstractComponents {
+trait RoundRobinServiceLocatorComponents extends CircuitBreakerComponents {
   def roundRobinServiceUris: immutable.Seq[URI]
 
-  lazy val serviceLocator: ServiceLocator = new RoundRobinServiceLocator(roundRobinServiceUris)(executionContext)
+  lazy val serviceLocator: ServiceLocator =
+    new RoundRobinServiceLocator(roundRobinServiceUris, circuitBreakersPanel)(executionContext)
 }
 
 /**
  * A round robin service locator, that cycles through a list of URIs.
  */
-class RoundRobinServiceLocator(uris: immutable.Seq[URI])(implicit ec: ExecutionContext) extends AbstractServiceLocator {
-
+class RoundRobinServiceLocator(uris: immutable.Seq[URI], circuitBreakers: CircuitBreakersPanel)(
+    implicit ec: ExecutionContext
+) extends CircuitBreakingServiceLocator(circuitBreakers) {
   private val counter = new AtomicInteger(0)
 
   override def locate(name: String, serviceCall: Call[_, _]): Future[Option[URI]] = {
@@ -88,5 +182,4 @@ class RoundRobinServiceLocator(uris: immutable.Seq[URI])(implicit ec: ExecutionC
 
   override def locateAll(name: String, serviceCall: Call[_, _]): Future[List[URI]] =
     Future.successful(uris.toList)
-
 }
