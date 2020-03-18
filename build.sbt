@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 val scalaVersions = Seq("2.12.10")
 
 val baseLagomVersion = "1.6.1"
-val akkaJsVersion    = "2.2.6.1"
+val akkaJsVersion    = "2.2.6.3"
 
 lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
@@ -247,7 +247,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js" %%% "scalajs-dom" % "1.0.0",
+      "org.scala-js"  %%% "scalajs-dom" % "1.0.0",
       "org.scalatest" %%% "scalatest"   % "3.0.8" % Test
     )
   )
