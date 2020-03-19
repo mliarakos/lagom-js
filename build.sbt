@@ -3,7 +3,7 @@ import sbt.Keys.version
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val scalaVersions = Seq("2.12.10")
+val scalaVersions = Seq("2.12.10", "2.13.1")
 
 val baseLagomVersion = "1.6.1"
 val akkaJsVersion    = "2.2.6.3"
