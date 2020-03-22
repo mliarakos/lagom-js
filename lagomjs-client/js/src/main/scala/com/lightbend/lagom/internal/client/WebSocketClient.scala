@@ -16,10 +16,13 @@ import org.scalajs.dom.CloseEvent
 import org.scalajs.dom.Event
 import org.scalajs.dom.WebSocket
 import org.scalajs.dom.raw.MessageEvent
+import play.api.http.Status
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
+import scala.scalajs.js.typedarray.ArrayBuffer
+import scala.scalajs.js.typedarray.TypedArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 
 private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) extends LagomServiceApiBridge {
@@ -41,33 +44,42 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     }
     val url = new URI(scheme, uri.getAuthority, uri.getPath, uri.getQuery, uri.getFragment).toString
 
-    val socket  = new WebSocket(url)
-    val promise = Promise[(ResponseHeader, Source[ByteString, NotUsed])]()
+    // Open the socket and set its binaryType so that binary data can be parsed
+    val socket = new WebSocket(url)
+    socket.binaryType = "arraybuffer"
 
+    // Create sink that will receive the request outgoing source data and send it to the socket
     val socketSink = Sink.foreach[ByteString](string => {
       val data = string.asByteBuffer
       val buffer =
         if (data.hasTypedArray()) {
           data.typedArray().subarray(data.position, data.limit).buffer
         } else {
-          val tempBuffer   = ByteBuffer.allocateDirect(data.remaining)
-          val origPosition = data.position
-          tempBuffer.put(data)
-          data.position(origPosition)
-          tempBuffer.typedArray().buffer
+          ByteBuffer.allocateDirect(data.remaining).put(data).typedArray().buffer
         }
       socket.send(buffer)
     })
-    val socketSource     = Source.fromPublisher(new WebSocketPublisher(socket))
+    // Create source that will receive and provide the incoming socket data
+    val publisher    = new WebSocketPublisher(socket, exceptionSerializer, messageHeaderProtocol(requestHeader))
+    val socketSource = Source.fromPublisher(publisher)
+    // Create flow that represents sending data to and receiving data from the socket
+    // The sending side is: socketSink -> socket -> service
+    // The receiving side is: service -> socket -> socketSource
+    // The sink and source are not directly connected in Akka, the socket is the intermediary that connects them
     val clientConnection = Flow.fromSinkAndSource(socketSink, socketSource)
 
-    // TODO: what do to about missing headers
-    val protocol       = messageProtocolFromContentTypeHeader(None)
-    val responseHeader = newResponseHeader(200, protocol, Map.empty)
+    val promise = Promise[(ResponseHeader, Source[ByteString, NotUsed])]()
 
-    socket.onerror = (_: Event) => {
-      promise.failure(new Exception("WebSocket error"))
+    // Create artificial response header because it is not possible to get it from a WebSocket in JavaScript
+    // Use the HTTP 101 response code to indicate switching protocols to WebSocket
+    val protocol       = messageProtocolFromContentTypeHeader(None)
+    val responseHeader = newResponseHeader(Status.SWITCHING_PROTOCOLS, protocol, Map.empty)
+
+    // Fail if the socket fails to open
+    socket.onerror = (event: Event) => {
+      promise.failure(new RuntimeException(s"WebSocket error: ${event.`type`}"))
     }
+    // Succeed and start the data flow if the socket opens successfully
     socket.onopen = (_: Event) => {
       promise.success((responseHeader, outgoing.via(clientConnection)))
     }
@@ -75,35 +87,55 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     promise.future
   }
 
-}
+  private class WebSocketPublisher(
+      socket: WebSocket,
+      exceptionSerializer: ExceptionSerializer,
+      requestProtocol: MessageProtocol
+  ) extends Publisher[ByteString] {
+    private val normalClosure   = 1000
+    private var hasSubscription = false
 
-private class WebSocketPublisher(socket: WebSocket) extends Publisher[ByteString] {
+    override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
+      if (!hasSubscription) {
+        hasSubscription = true
 
-  private var hasSubscription: Boolean = false
+        // Close the socket if the source subscriber cancels
+        subscriber.onSubscribe(new Subscription {
+          override def request(n: Long): Unit = {}
+          override def cancel(): Unit         = socket.close()
+        })
 
-  override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
-    if (!hasSubscription) {
-      hasSubscription = true
-
-      subscriber.onSubscribe(new Subscription {
-        override def request(n: Long): Unit = {}
-
-        override def cancel(): Unit = {
-          socket.close()
+        // Forward messages from the socket to the source subscriber
+        socket.onmessage = (message: MessageEvent) => {
+          // The message data should be either an ArrayBuffer or a String
+          // It should not be a Blob because the socket binaryType was set
+          val data = message.data match {
+            case buffer: ArrayBuffer => ByteString.apply(TypedArrayBuffer.wrap(buffer))
+            case data                => ByteString.fromString(data.toString)
+          }
+          subscriber.onNext(data)
         }
-      })
-
-      socket.onmessage = (message: MessageEvent) => {
-        subscriber.onNext(ByteString.fromString(message.data.toString))
+        // Complete the source subscriber with an error if the socket encounters an error
+        socket.onerror = (event: Event) => {
+          subscriber.onError(new RuntimeException(s"WebSocket error: ${event.`type`}"))
+        }
+        // Complete the source subscriber when the socket closes based on the close code
+        socket.onclose = (event: CloseEvent) => {
+          if (event.code == normalClosure) {
+            // Successfully complete the source subscriber because the socket closed normally
+            subscriber.onComplete()
+          } else {
+            // Complete the source subscriber with an error because the socket closed with an error
+            // Parse the error reason as an exception
+            val bytes = ByteString.fromString(event.reason)
+            val exception =
+              exceptionSerializerDeserializeWebSocketException(exceptionSerializer, event.code, requestProtocol, bytes)
+            subscriber.onError(exception)
+          }
+        }
+      } else {
+        subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
       }
-      socket.onerror = (_: Event) => {
-        subscriber.onError(new Exception("WebSocket error"))
-      }
-      // TODO: handle CloseEvent states
-      socket.onclose = (_: CloseEvent) => {
-        subscriber.onComplete()
-      }
-    } else subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
+    }
   }
-
 }
