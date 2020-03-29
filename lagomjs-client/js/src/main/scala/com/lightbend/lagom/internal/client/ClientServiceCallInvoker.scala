@@ -317,14 +317,15 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
 }
 
 private object ClientServiceCallInvoker {
+  private val header = "(.*?):(.*)".r
 
   def parseHeaders(xhr: XMLHttpRequest): Map[String, Seq[String]] = {
     xhr
       .getAllResponseHeaders()
-      .split("""\r\n""")
-      .map(header => {
-        val Array(key, values) = header.trim.split(":", 2)
-        key -> values.trim.split(",").map(_.trim).toSeq
+      .split("\r\n")
+      .flatMap({
+        case header(key, values) => Some(key.trim -> values.split(",").map(_.trim).toSeq)
+        case _                   => None
       })
       .toMap
   }
