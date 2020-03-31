@@ -283,7 +283,7 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
         responseType = ""
       )
       .recover({
-        case AjaxException(xhr) => xhr
+        case e: AjaxException if !e.isTimeout => e.xhr
       })
       .map(xhr => {
         val status  = xhr.status
