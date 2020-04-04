@@ -15,7 +15,7 @@ Lagom.js is built against specific versions of Lagom:
 | 0.1.2-1.5.4 | 1.5.4 | 2.11 <br> 2.12  | 0.6.31+  |
 | 0.1.2-1.5.5 | 1.5.5 | 2.11 <br> 2.12  | 0.6.31+  |
 | 0.2.1-1.6.0 | 1.6.0 | 2.12            | 0.6.31+  |
-| 0.3.0-1.6.1 | 1.6.1 | 2.12 <br> 2.13  | 0.6.32+  |
+| 0.3.1-1.6.1 | 1.6.1 | 2.12 <br> 2.13  | 0.6.32+  |
 
 Lagom.js does not support the Lagom Java API. It only supports the Lagom Scala API because Scala.js only supports Scala.
 
@@ -28,7 +28,7 @@ Lagom.js provides JavaScript versions of several Lagom artifacts. The two most i
 The `lagomjs-scaladsl-api` artifact provides the JavaScript implementation of the Lagom service API:
 
 ```sbt
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.0-1.6.1"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.1-1.6.1"
 ```
 
 To use it you'll need to configure your service API as a [Scala.js cross project](https://github.com/portable-scala/sbt-crossproject) for the JVM and JS platforms. Then, add the `lagomjs-scaladsl-api` dependency to the JS platform:
@@ -40,7 +40,7 @@ lazy val `service-api` = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += lagomScaladslApi
   )
   .jsSettings(
-    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.0-1.6.1"
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-api" % "0.3.1-1.6.1"
   )
 ```
 
@@ -51,7 +51,7 @@ This enables your Lagom service definition to be compiled into JavaScript. In ad
 The `lagomjs-scaladsl-client` artifact provides the JavaScript implementation of the Lagom service client:
 
 ```sbt
-"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.0-1.6.1"
+"com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.1-1.6.1"
 ```
 
 You can use it in a Scala.js project along with your service API to generate a service client:
@@ -59,7 +59,7 @@ You can use it in a Scala.js project along with your service API to generate a s
 ```scala
 lazy val `client-js` = project
   .settings(
-    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.0-1.6.1"
+    libraryDependencies += "com.github.mliarakos.lagomjs" %%% "lagomjs-scaladsl-client" % "0.3.1-1.6.1"
   )
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(`service-api`.js)
