@@ -374,6 +374,61 @@ lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
 
+lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Full)
+  .in(file("lagomjs-integration-test"))
+  .settings(
+    name := "lagomjs-integration-test"
+  )
+  .settings(
+    publish / skip := true,
+    publishLocal / skip := true
+  )
+  .jvmSettings(commonSettings: _*)
+  .jvmSettings(
+    libraryDependencies ++= Seq(
+      filters,
+      lagomScaladslApi
+    )
+  )
+  .jsSettings(commonJsSettings: _*)
+  .jsSettings(
+    libraryDependencies ++= Seq(
+      "org.scala-js"  %% "scalajs-test-interface" % "0.6.32",
+      "org.scalatest" %%% "scalatest"             % "3.0.8"
+    )
+  )
+  .jsConfigure(
+    _.enablePlugins(ScalaJSWeb)
+  )
+  .jsConfigure(
+    _.dependsOn(`lagomjs-client-scaladsl`.js)
+  )
+
+lazy val `lagomjs-integration-test-server` = project
+  .in(file("lagomjs-integration-test-server"))
+  .settings(
+    name := "lagomjs-integration-test-server"
+  )
+  .settings(
+    publish / skip := true,
+    publishLocal / skip := true
+  )
+  .settings(commonSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      lagomScaladslTestKit,
+      "org.scala-js"             %% "scalajs-env-selenium" % "0.3.0",
+      "org.scalatest"            %% "scalatest"            % "3.0.8" % Test,
+      "org.seleniumhq.selenium"  % "selenium-java"         % "3.141.59" % Test,
+      "com.softwaremill.macwire" %% "macros"               % "2.3.3" % Provided
+    ),
+    scalaJSProjects := Seq(`lagomjs-integration-test`.js),
+    pipelineStages in Assets := Seq(scalaJSPipeline)
+  )
+  .enablePlugins(SbtWeb, LagomScala)
+  .dependsOn(`lagomjs-integration-test`.jvm)
+
 lazy val `lagomjs` = project
   .in(file("."))
   .settings(commonSettings: _*)
@@ -388,5 +443,8 @@ lazy val `lagomjs` = project
     `lagomjs-client`.js,
     `lagomjs-client-scaladsl`.js,
     `lagomjs-persistence-scaladsl`.js,
-    `lagomjs-macro-testkit`.js
+    `lagomjs-macro-testkit`.js,
+    `lagomjs-integration-test`.js,
+    `lagomjs-integration-test`.jvm,
+    `lagomjs-integration-test-server`
   )

@@ -1,5 +1,8 @@
+addSbtPlugin("com.lightbend.lagom" % "lagom-sbt-plugin" % "1.6.4")
+
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.2.0")
+addSbtPlugin("com.vmunier"        % "sbt-web-scalajs"          % "1.1.0")
 
 addSbtPlugin("com.jsuereth"  % "sbt-pgp"      % "1.1.2")
 addSbtPlugin("org.akka-js"   % "sbt-shocon"   % "1.0.0")
