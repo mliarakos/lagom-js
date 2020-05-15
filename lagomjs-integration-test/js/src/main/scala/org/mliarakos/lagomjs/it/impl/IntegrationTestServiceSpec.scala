@@ -1,6 +1,11 @@
 package org.mliarakos.lagomjs.it.impl
 
+import akka.stream.Materializer
+import akka.stream.scaladsl.Sink
+import org.mliarakos.lagomjs.it.api.Input
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
+import org.mliarakos.lagomjs.it.api.Output
+import org.mliarakos.lagomjs.it.api.TestValues
 import org.scalatest.AsyncWordSpec
 import org.scalatest.Matchers
 
@@ -16,14 +21,96 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
   private val application = new IntegrationTestApplication(port, "localhost")
   private val client      = application.serviceClient.implement[IntegrationTestService]
 
+  private implicit val mat: Materializer = application.materializer
+
+  private val DEFAULT = TestValues.DEFAULT
+  private val A       = "a"
+  private val B       = "b"
+  private val NUM     = 0
+
   "The IntegrationTestService" should {
-    "call the greeting endpoint" in {
+    "invoke a call endpoint" in {
       for {
-        response <- client.greeting.invoke()
+        response <- client.testCall.invoke()
       } yield {
-        response shouldBe "Welcome!"
+        response shouldBe DEFAULT
+      }
+    }
+    "invoke a namedCall endpoint" in {
+      for {
+        response <- client.testNamedCall.invoke()
+      } yield {
+        response shouldBe DEFAULT
+      }
+    }
+    "invoke a pathCall endpoint" in {
+      for {
+        response <- client.testPathCall(A).invoke()
+      } yield {
+        response shouldBe A
+      }
+    }
+    "invoke a pathCall endpoint with multiple parameters" in {
+      for {
+        response <- client.testPathCallMultiple(A, B).invoke()
+      } yield {
+        response shouldBe A + B
+      }
+    }
+    "invoke a pathCall endpoint with a query parameter" in {
+      for {
+        response <- client.testPathCallQuery(A).invoke()
+      } yield {
+        response shouldBe A
+      }
+    }
+    "invoke a pathCall endpoint with multiple query parameters" in {
+      for {
+        response <- client.testPathCallQueryMultiple(A, B).invoke()
+      } yield {
+        response shouldBe A + B
+      }
+    }
+    "invoke a restCall GET endpoint" in {
+      for {
+        response <- client.testRestGetCall(A).invoke()
+      } yield {
+        response shouldBe A
+      }
+    }
+    "invoke a restCall POST endpoint" in {
+      val input = Input(A, NUM)
+      for {
+        response <- client.testRestPostCall.invoke(input)
+      } yield {
+        response shouldBe Output(A, NUM)
+      }
+    }
+    "invoke a restCall PUT endpoint" in {
+      val input = Input(A, NUM)
+      for {
+        response <- client.testRestPutCall.invoke(input)
+      } yield {
+        response shouldBe Output(A, NUM)
+      }
+    }
+    "invoke a restCall DELETE endpoint" in {
+      for {
+        response <- client.testRestDeleteCall(A).invoke()
+      } yield {
+        response shouldBe A
+      }
+    }
+    // TODO: HEAD
+    // TODO: OPTIONS
+    // TODO: PATCH
+    "invoke an endpoint with a streaming response" in {
+      for {
+        source <- client.testStreamingResponse.invoke(A)
+        result <- source.runWith(Sink.seq)
+      } yield {
+        all(result) shouldBe A
       }
     }
   }
-
 }
