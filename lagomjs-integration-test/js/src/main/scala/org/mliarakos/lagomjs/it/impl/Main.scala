@@ -7,6 +7,7 @@ import sbt.testing._
 
 import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
+import scala.util.Try
 
 @JSExportTopLevel("IntegrationTestServiceSpec")
 object Main {
@@ -22,13 +23,16 @@ object Main {
     // Run basic SBT test task
     // The handler will signal that the test is running on each test event and track the final test result
     // Signal testing is done when the test completes
-    val name     = classOf[IntegrationTestServiceSpec].getName
-    val taskDef  = new TaskDef(name, new Fingerprint {}, true, Array(new SuiteSelector()))
-    val runner   = new MasterRunner(Array.empty, Array.empty, new ClassLoader {})
-    val task     = runner.tasks(Array(taskDef)).head
-    val handler  = new ScalaJsComEventHandler()
-    val complete = (_: Array[Task]) => { console.log(runner.done()); ScalajsCom.send(handler.result) }
+    val run = Try({
+      val name     = classOf[IntegrationTestServiceSpec].getName
+      val taskDef  = new TaskDef(name, new Fingerprint {}, true, Array(new SuiteSelector()))
+      val runner   = new MasterRunner(Array.empty, Array.empty, new ClassLoader {})
+      val task     = runner.tasks(Array(taskDef)).head
+      val handler  = new ScalaJsComEventHandler()
+      val complete = (_: Array[Task]) => { console.log(runner.done()); ScalajsCom.send(handler.result) }
 
-    task.execute(handler, Array(JsConsoleLogger), complete)
+      task.execute(handler, Array(JsConsoleLogger), complete)
+    })
+    run.recover({ case t => t.printStackTrace(); ScalajsCom.send(TestMessage.FAILED) })
   }
 }

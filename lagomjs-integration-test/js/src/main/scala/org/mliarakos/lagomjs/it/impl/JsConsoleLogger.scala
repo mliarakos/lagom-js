@@ -9,5 +9,5 @@ object JsConsoleLogger extends Logger {
   override def warn(msg: String): Unit       = console.log(msg)
   override def info(msg: String): Unit       = console.log(msg)
   override def debug(msg: String): Unit      = console.log(msg)
-  override def trace(t: Throwable): Unit     = console.error(t)
+  override def trace(t: Throwable): Unit     = console.error(t.toString)
 }
