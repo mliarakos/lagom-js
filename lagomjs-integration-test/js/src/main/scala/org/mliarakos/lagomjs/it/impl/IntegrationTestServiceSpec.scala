@@ -2,6 +2,7 @@ package org.mliarakos.lagomjs.it.impl
 
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.Source
 import org.mliarakos.lagomjs.it.api.Input
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
 import org.mliarakos.lagomjs.it.api.Output
@@ -9,7 +10,9 @@ import org.mliarakos.lagomjs.it.api.TestValues
 import org.scalatest.AsyncWordSpec
 import org.scalatest.Matchers
 
+import scala.collection.immutable._
 import scala.concurrent.ExecutionContext
+import scala.language.postfixOps
 import scala.scalajs.concurrent.JSExecutionContext
 
 class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
@@ -26,7 +29,8 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
   private val DEFAULT = TestValues.DEFAULT
   private val A       = "a"
   private val B       = "b"
-  private val NUM     = 0
+  private val NUM     = 2
+  private val REPEAT  = 10
 
   "The IntegrationTestService" should {
     "invoke a call endpoint" in {
@@ -104,12 +108,41 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
     // TODO: HEAD
     // TODO: OPTIONS
     // TODO: PATCH
+    "invoke an endpoint with a streaming request" in {
+      val data   = Seq.fill(REPEAT)(A)
+      val source = Source(data)
+      for {
+        response <- client.testStreamingRequest(REPEAT).invoke(source)
+      } yield {
+        response shouldBe data
+      }
+    }
     "invoke an endpoint with a streaming response" in {
       for {
-        source <- client.testStreamingResponse.invoke(A)
+        source <- client.testStreamingResponse(REPEAT).invoke(A)
         result <- source.runWith(Sink.seq)
       } yield {
-        all(result) shouldBe A
+        result shouldBe Seq.fill(REPEAT)(A)
+      }
+    }
+    "invoke an endpoint with a streaming request and response" in {
+      val data           = Seq.fill(REPEAT)(A)
+      val outgoingSource = Source(data)
+      for {
+        incomingSource <- client.testStreaming(REPEAT).invoke(outgoingSource)
+        result         <- incomingSource.runWith(Sink.seq)
+      } yield {
+        result shouldBe data
+      }
+    }
+    "invoke an endpoint with a streaming binary response" in {
+      val byte = NUM.toByte
+      for {
+        source <- client.testStreamingBinary(REPEAT).invoke(byte)
+        result <- source.runWith(Sink.seq)
+      } yield {
+        val expected = Seq.fill(REPEAT)(Array.fill(REPEAT)(byte))
+        (result.map(_.toArray) should contain).theSameElementsInOrderAs(expected)
       }
     }
   }
