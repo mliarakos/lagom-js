@@ -22,7 +22,7 @@ import scala.concurrent.duration._
 
 class IntegrationTestServiceRunnerSpec extends AsyncWordSpec with Matchers {
 
-  private val timeout = 10.seconds
+  private val timeout = 30.seconds
   private val filename =
     "./lagomjs-integration-test-server/target/web/web-modules/test/webjars/lib/lagomjs-integration-test-server/lagomjs-integration-test-opt.js"
 

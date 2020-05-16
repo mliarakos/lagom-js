@@ -6,6 +6,8 @@ import akka.util.ByteString
 import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.transport.Method
 
+import scala.collection.immutable._
+
 trait IntegrationTestService extends Service {
 
   def testCall: ServiceCall[NotUsed, String]
@@ -28,11 +30,13 @@ trait IntegrationTestService extends Service {
 
   def testRestDeleteCall(a: String): ServiceCall[NotUsed, String]
 
-  def testStreamingResponse: ServiceCall[String, Source[String, NotUsed]]
+  def testStreamingRequest(num: Int): ServiceCall[Source[String, NotUsed], Seq[String]]
 
-//  def echo: ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+  def testStreamingResponse(num: Int): ServiceCall[String, Source[String, NotUsed]]
 
-//  def binary: ServiceCall[NotUsed, Source[ByteString, NotUsed]]
+  def testStreaming(num: Int): ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+
+  def testStreamingBinary(num: Int): ServiceCall[Byte, Source[ByteString, NotUsed]]
 
   override def descriptor: Descriptor = {
     import Service._
@@ -48,13 +52,10 @@ trait IntegrationTestService extends Service {
         restCall(Method.POST, "/rest/post", testRestPostCall _),
         restCall(Method.PUT, "/rest/put", testRestPutCall _),
         restCall(Method.DELETE, "/rest/delete/:a", testRestDeleteCall _),
-        pathCall("/stream/response", testStreamingResponse _),
-//        restCall(Method.GET, "/hello/:name", hello _),
-//        restCall(Method.GET, "/random?count", random _),
-//        restCall(Method.POST, "/ping", ping),
-//        pathCall("/tick/:interval", tick _),
-//        pathCall("/echo", echo),
-//        pathCall("/binary", binary)
+        pathCall("/stream/request?num", testStreamingRequest _),
+        pathCall("/stream/response?num", testStreamingResponse _),
+        pathCall("/stream/both?num", testStreaming _),
+        pathCall("/stream/binary?num", testStreamingBinary _)
       )
       .withAcls(
         ServiceAcl.forMethodAndPathRegex(Method.OPTIONS, "/.*")
