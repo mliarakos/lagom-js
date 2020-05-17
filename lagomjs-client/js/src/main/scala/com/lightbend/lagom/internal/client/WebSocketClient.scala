@@ -48,24 +48,16 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     val socket = new WebSocket(url)
     socket.binaryType = "arraybuffer"
 
-    // Create sink that will receive the request outgoing source data and send it to the socket
-    val socketSink = Sink.foreach[ByteString](string => {
-      val data = string.asByteBuffer
-      val buffer =
-        if (data.hasTypedArray()) {
-          data.typedArray().subarray(data.position, data.limit).buffer
-        } else {
-          ByteBuffer.allocateDirect(data.remaining).put(data).typedArray().buffer
-        }
-      socket.send(buffer)
-    })
-    // Create source that will receive and provide the incoming socket data
+    // Create sink that will receive the outgoing data from the request source and send it to the socket
+    val subscriber = new WebSocketSubscriber(socket, exceptionSerializer)
+    val socketSink = Sink.fromSubscriber(subscriber)
+    // Create source that will receive the incoming socket data and send it to the response source
     val publisher    = new WebSocketPublisher(socket, exceptionSerializer, messageHeaderProtocol(requestHeader))
     val socketSource = Source.fromPublisher(publisher)
     // Create flow that represents sending data to and receiving data from the socket
     // The sending side is: socketSink -> socket -> service
     // The receiving side is: service -> socket -> socketSource
-    // The sink and source are not directly connected in Akka, the socket is the intermediary that connects them
+    // The sink and source are not connected in Akka, the socket is the intermediary that connects them
     val clientConnection = Flow.fromSinkAndSource(socketSink, socketSource)
 
     val promise = Promise[(ResponseHeader, Source[ByteString, NotUsed])]()
@@ -87,12 +79,43 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     promise.future
   }
 
+  private class WebSocketSubscriber(
+      socket: WebSocket,
+      exceptionSerializer: ExceptionSerializer
+  ) extends Subscriber[ByteString] {
+    override def onSubscribe(s: Subscription): Unit = {
+      s.request(Long.MaxValue)
+    }
+
+    override def onNext(t: ByteString): Unit = {
+      val data = t.asByteBuffer
+      val buffer =
+        if (data.hasTypedArray()) {
+          data.typedArray().subarray(data.position, data.limit).buffer
+        } else {
+          ByteBuffer.allocateDirect(data.remaining).put(data).typedArray().buffer
+        }
+      socket.send(buffer)
+    }
+
+    override def onError(t: Throwable): Unit = {
+      val rawExceptionMessage = exceptionSerializerSerialize(exceptionSerializer, t, Nil)
+      val code                = rawExceptionMessageWebSocketCode(rawExceptionMessage)
+      val message             = rawExceptionMessageMessageAsText(rawExceptionMessage)
+      socket.close(code, message)
+    }
+
+    override def onComplete(): Unit = {
+      socket.close()
+    }
+  }
+
   private class WebSocketPublisher(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
   ) extends Publisher[ByteString] {
-    private val normalClosure   = 1000
+    private val NormalClosure   = 1000
     private var hasSubscription = false
 
     override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
@@ -121,7 +144,7 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
         }
         // Complete the source subscriber when the socket closes based on the close code
         socket.onclose = (event: CloseEvent) => {
-          if (event.code == normalClosure) {
+          if (event.code == NormalClosure) {
             // Successfully complete the source subscriber because the socket closed normally
             subscriber.onComplete()
           } else {
