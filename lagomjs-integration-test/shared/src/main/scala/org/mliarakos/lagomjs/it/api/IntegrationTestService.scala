@@ -32,9 +32,13 @@ trait IntegrationTestService extends Service {
 
   def testStreamingRequest(num: Int): ServiceCall[Source[String, NotUsed], Seq[String]]
 
-  def testStreamingResponse(num: Int): ServiceCall[String, Source[String, NotUsed]]
+  def testBoundedStreamingResponse(num: Int): ServiceCall[String, Source[String, NotUsed]]
 
-  def testStreaming(num: Int): ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+  def testUnboundedStreamingResponse: ServiceCall[String, Source[String, NotUsed]]
+
+  def testBoundedStreaming(num: Int): ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+
+  def testUnboundedStreaming: ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
 
   def testStreamingBinary(num: Int): ServiceCall[Byte, Source[ByteString, NotUsed]]
 
@@ -53,8 +57,10 @@ trait IntegrationTestService extends Service {
         restCall(Method.PUT, "/rest/put", testRestPutCall _),
         restCall(Method.DELETE, "/rest/delete/:a", testRestDeleteCall _),
         pathCall("/stream/request?num", testStreamingRequest _),
-        pathCall("/stream/response?num", testStreamingResponse _),
-        pathCall("/stream/both?num", testStreaming _),
+        pathCall("/stream/response/bounded?num", testBoundedStreamingResponse _),
+        pathCall("/stream/response/unbounded", testUnboundedStreamingResponse _),
+        pathCall("/stream/both/bounded?num", testBoundedStreaming _),
+        pathCall("/stream/both/unbounded", testUnboundedStreaming _),
         pathCall("/stream/binary?num", testStreamingBinary _)
       )
       .withAcls(

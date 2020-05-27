@@ -1,5 +1,6 @@
 package org.mliarakos.lagomjs.it.impl
 
+import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
@@ -12,6 +13,7 @@ import org.scalatest.Matchers
 
 import scala.collection.immutable._
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration._
 import scala.language.postfixOps
 import scala.scalajs.concurrent.JSExecutionContext
 
@@ -31,6 +33,9 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
   private val B       = "b"
   private val NUM     = 2
   private val REPEAT  = 10
+
+  private def unboundedSource(message: String) =
+    Source.tick(Duration.Zero, 100.milliseconds, message).mapMaterializedValue(_ => NotUsed)
 
   "The IntegrationTestService" should {
     "invoke a call endpoint" in {
@@ -109,30 +114,45 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
     // TODO: OPTIONS
     // TODO: PATCH
     "invoke an endpoint with a streaming request" in {
-      val data   = Seq.fill(REPEAT)(A)
-      val source = Source(data)
+      val source = unboundedSource(A)
       for {
         response <- client.testStreamingRequest(REPEAT).invoke(source)
       } yield {
-        response shouldBe data
+        response shouldBe Seq.fill(REPEAT)(A)
       }
     }
-    "invoke an endpoint with a streaming response" in {
+    "invoke an endpoint with a bounded streaming response" in {
       for {
-        source <- client.testStreamingResponse(REPEAT).invoke(A)
+        source <- client.testBoundedStreamingResponse(REPEAT).invoke(A)
         result <- source.runWith(Sink.seq)
       } yield {
         result shouldBe Seq.fill(REPEAT)(A)
       }
     }
-    "invoke an endpoint with a streaming request and response" in {
-      val data           = Seq.fill(REPEAT)(A)
-      val outgoingSource = Source(data)
+    "invoke an endpoint with an unbounded streaming response" in {
       for {
-        incomingSource <- client.testStreaming(REPEAT).invoke(outgoingSource)
+        source <- client.testUnboundedStreamingResponse.invoke(A)
+        result <- source.take(REPEAT).runWith(Sink.seq)
+      } yield {
+        result shouldBe Seq.fill(REPEAT)(A)
+      }
+    }
+    "invoke an endpoint with a bounded streaming request and response" in {
+      val outgoingSource = unboundedSource(A)
+      for {
+        incomingSource <- client.testBoundedStreaming(REPEAT).invoke(outgoingSource)
         result         <- incomingSource.runWith(Sink.seq)
       } yield {
-        result shouldBe data
+        result shouldBe Seq.fill(REPEAT)(A)
+      }
+    }
+    "invoke an endpoint with an unbounded streaming request and response" in {
+      val outgoingSource = unboundedSource(A)
+      for {
+        incomingSource <- client.testUnboundedStreaming.invoke(outgoingSource)
+        result         <- incomingSource.take(REPEAT).runWith(Sink.seq)
+      } yield {
+        result shouldBe Seq.fill(REPEAT)(A)
       }
     }
     "invoke an endpoint with a streaming binary response" in {
