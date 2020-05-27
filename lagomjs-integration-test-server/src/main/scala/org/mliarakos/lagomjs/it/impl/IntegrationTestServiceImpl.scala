@@ -1,5 +1,6 @@
 package org.mliarakos.lagomjs.it.impl
 
+import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
@@ -11,6 +12,7 @@ import org.mliarakos.lagomjs.it.api.TestValues
 
 import scala.collection.immutable._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class IntegrationTestServiceImpl(implicit mat: Materializer) extends IntegrationTestService {
 
@@ -60,13 +62,22 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
     source.take(num).runWith(Sink.seq)
   }
 
-  override def testStreamingResponse(num: Int) = ServerServiceCall { message =>
+  override def testBoundedStreamingResponse(num: Int) = ServerServiceCall { message =>
     val source = Source(Seq.fill(num)(message))
     Future.successful(source)
   }
 
-  override def testStreaming(num: Int) = ServerServiceCall { source =>
+  override def testUnboundedStreamingResponse = ServerServiceCall { message =>
+    val source = Source.tick(Duration.Zero, 100.milliseconds, message).mapMaterializedValue(_ => NotUsed)
+    Future.successful(source)
+  }
+
+  override def testBoundedStreaming(num: Int) = ServerServiceCall { source =>
     Future.successful(source.take(num))
+  }
+
+  override def testUnboundedStreaming = ServerServiceCall { source =>
+    Future.successful(source)
   }
 
   override def testStreamingBinary(num: Int) = ServerServiceCall { byte =>
