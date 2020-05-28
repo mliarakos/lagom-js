@@ -6,7 +6,7 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 val scalaVersions = Seq("2.12.10", "2.13.1")
 
 val baseLagomVersion = "1.6.2"
-val akkaJsVersion    = "2.2.6.3"
+val akkaJsVersion    = "2.2.6.5"
 
 lazy val scalaSettings = Seq(
   crossScalaVersions := scalaVersions,
@@ -54,11 +54,7 @@ lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
 )
 
 lazy val commonJsSettings = Seq(
-  jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv(),
-  scalacOptions ++= {
-    if (scalaJSVersion.startsWith("0.6.")) Seq("-P:scalajs:sjsDefinedByDefault")
-    else Nil
-  }
+  jsEnv := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv()
 )
 
 lazy val lagomVersion         = settingKey[String]("The Lagom version to use.")
@@ -142,7 +138,7 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
       "org.akka-js"            %%% "akkajsactor"              % akkaJsVersion,
       "org.akka-js"            %%% "akkajsactorstream"        % akkaJsVersion,
       "org.scala-lang.modules" %%% "scala-parser-combinators" % "1.1.2",
-      "com.typesafe.play"      %%% "play-json"                % "2.8.1"
+      "com.typesafe.play"      %%% "play-json"                % "2.9.0"
     )
   )
   .jsSettings(
@@ -186,7 +182,7 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .jsSettings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-      "org.scalatest"  %%% "scalatest"   % "3.0.8"            % Test
+      "org.scalatest"  %%% "scalatest"   % "3.1.2"            % Test
     )
   )
   .jsSettings(
@@ -251,7 +247,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   .jsSettings(
     libraryDependencies ++= Seq(
       "org.scala-js"  %%% "scalajs-dom" % "1.0.0",
-      "org.scalatest" %%% "scalatest"   % "3.0.8" % Test
+      "org.scalatest" %%% "scalatest"   % "3.1.2" % Test
     )
   )
   .jsSettings(
@@ -297,7 +293,7 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % "3.0.8" % Test
+      "org.scalatest" %%% "scalatest" % "3.1.2" % Test
     )
   )
   .jsSettings(
