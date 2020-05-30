@@ -30,6 +30,10 @@ trait IntegrationTestService extends Service {
 
   def testRestDeleteCall(a: String): ServiceCall[NotUsed, String]
 
+  def testRestHeadCall: ServiceCall[NotUsed, NotUsed]
+
+  def testRestPatchCall(a: String): ServiceCall[Input, Output]
+
   def testStreamingRequest(num: Int): ServiceCall[Source[String, NotUsed], Seq[String]]
 
   def testBoundedStreamingResponse(num: Int): ServiceCall[String, Source[String, NotUsed]]
@@ -56,6 +60,8 @@ trait IntegrationTestService extends Service {
         restCall(Method.POST, "/rest/post", testRestPostCall _),
         restCall(Method.PUT, "/rest/put", testRestPutCall _),
         restCall(Method.DELETE, "/rest/delete/:a", testRestDeleteCall _),
+        restCall(Method.HEAD, "/rest/head", testRestHeadCall _),
+        restCall(Method.PATCH, "/rest/patch/:a", testRestPatchCall _),
         pathCall("/stream/request?num", testStreamingRequest _),
         pathCall("/stream/response/bounded?num", testBoundedStreamingResponse _),
         pathCall("/stream/response/unbounded", testUnboundedStreamingResponse _),

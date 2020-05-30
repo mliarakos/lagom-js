@@ -4,6 +4,8 @@ import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
+import com.lightbend.lagom.scaladsl.api.transport.Method
+import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
 import org.mliarakos.lagomjs.it.api.Input
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
 import org.mliarakos.lagomjs.it.api.Output
@@ -34,8 +36,14 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
   private val NUM     = 2
   private val REPEAT  = 10
 
-  private def unboundedSource(message: String) =
+  private def unboundedSource(message: String) = {
     Source.tick(Duration.Zero, 100.milliseconds, message).mapMaterializedValue(_ => NotUsed)
+  }
+
+  private def validateMethod(method: Method)(requestHeader: RequestHeader): RequestHeader = {
+    assert(requestHeader.method == method)
+    requestHeader
+  }
 
   "The IntegrationTestService" should {
     "invoke a call endpoint" in {
@@ -82,7 +90,10 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
     }
     "invoke a restCall GET endpoint" in {
       for {
-        response <- client.testRestGetCall(A).invoke()
+        response <- client
+          .testRestGetCall(A)
+          .handleRequestHeader(validateMethod(Method.GET))
+          .invoke()
       } yield {
         response shouldBe A
       }
@@ -90,7 +101,9 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
     "invoke a restCall POST endpoint" in {
       val input = Input(A, NUM)
       for {
-        response <- client.testRestPostCall.invoke(input)
+        response <- client.testRestPostCall
+          .handleRequestHeader(validateMethod(Method.POST))
+          .invoke(input)
       } yield {
         response shouldBe Output(A, NUM)
       }
@@ -98,21 +111,43 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
     "invoke a restCall PUT endpoint" in {
       val input = Input(A, NUM)
       for {
-        response <- client.testRestPutCall.invoke(input)
+        response <- client.testRestPutCall
+          .handleRequestHeader(validateMethod(Method.PUT))
+          .invoke(input)
       } yield {
         response shouldBe Output(A, NUM)
       }
     }
     "invoke a restCall DELETE endpoint" in {
       for {
-        response <- client.testRestDeleteCall(A).invoke()
+        response <- client
+          .testRestDeleteCall(A)
+          .handleRequestHeader(validateMethod(Method.DELETE))
+          .invoke()
       } yield {
         response shouldBe A
       }
     }
-    // TODO: HEAD
-    // TODO: OPTIONS
-    // TODO: PATCH
+    "invoke a restCall HEAD endpoint" in {
+      for {
+        response <- client.testRestHeadCall
+          .handleRequestHeader(validateMethod(Method.HEAD))
+          .invoke()
+      } yield {
+        response shouldBe NotUsed
+      }
+    }
+    "invoke a restCall PATCH endpoint" in {
+      val input = Input(A, NUM)
+      for {
+        response <- client
+          .testRestPatchCall(A)
+          .handleRequestHeader(validateMethod(Method.PATCH))
+          .invoke(input)
+      } yield {
+        response shouldBe Output(A, NUM)
+      }
+    }
     "invoke an endpoint with a streaming request" in {
       val source = unboundedSource(A)
       for {
