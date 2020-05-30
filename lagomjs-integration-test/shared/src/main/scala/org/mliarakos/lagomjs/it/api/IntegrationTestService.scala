@@ -46,6 +46,8 @@ trait IntegrationTestService extends Service {
 
   def testStreamingBinary(num: Int): ServiceCall[Byte, Source[ByteString, NotUsed]]
 
+  def testException: ServiceCall[String, NotUsed]
+
   override def descriptor: Descriptor = {
     import Service._
     named("lagomjs-it")
@@ -67,11 +69,13 @@ trait IntegrationTestService extends Service {
         pathCall("/stream/response/unbounded", testUnboundedStreamingResponse _),
         pathCall("/stream/both/bounded?num", testBoundedStreaming _),
         pathCall("/stream/both/unbounded", testUnboundedStreaming _),
-        pathCall("/stream/binary?num", testStreamingBinary _)
+        pathCall("/stream/binary?num", testStreamingBinary _),
+        pathCall("/exception", testException)
       )
       .withAcls(
         ServiceAcl.forMethodAndPathRegex(Method.OPTIONS, "/.*")
       )
+      .withExceptionSerializer(TestExceptionSerializer)
   }
 
 }

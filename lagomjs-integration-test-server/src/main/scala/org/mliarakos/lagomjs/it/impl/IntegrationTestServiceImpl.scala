@@ -9,6 +9,7 @@ import com.lightbend.lagom.scaladsl.api.transport.Method
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
 import org.mliarakos.lagomjs.it.api.Output
+import org.mliarakos.lagomjs.it.api.TestException
 import org.mliarakos.lagomjs.it.api.TestValues
 
 import scala.collection.immutable._
@@ -112,5 +113,9 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
     val data   = Seq.fill(num)(ByteString(Array.fill(num)(byte)))
     val source = Source(data)
     Future.successful(source)
+  }
+
+  override def testException = ServerServiceCall { msg =>
+    Future.failed(TestException(msg))
   }
 }
