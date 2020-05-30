@@ -48,7 +48,11 @@ lazy val publishSettings = Seq(
   )
 )
 
-lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
+lazy val testSettings = Seq(
+  parallelExecution in Test := false
+)
+
+lazy val commonSettings = scalaSettings ++ publishSettings ++ testSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
   version := s"0.5.2-$baseLagomVersion-SNAPSHOT"
 )
