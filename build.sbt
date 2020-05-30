@@ -394,8 +394,8 @@ lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js"  %% "scalajs-test-interface" % "0.6.32",
-      "org.scalatest" %%% "scalatest"             % "3.0.8"
+      "org.scala-js"  %% "scalajs-test-interface" % "1.0.1",
+      "org.scalatest" %%% "scalatest"             % "3.1.2"
     )
   )
   .jsConfigure(
@@ -418,8 +418,8 @@ lazy val `lagomjs-integration-test-server` = project
   .settings(
     libraryDependencies ++= Seq(
       lagomScaladslTestKit,
-      "org.scala-js"             %% "scalajs-env-selenium" % "0.3.0",
-      "org.scalatest"            %% "scalatest"            % "3.0.8" % Test,
+      "org.scala-js"             %% "scalajs-env-selenium" % "1.0.0",
+      "org.scalatest"            %% "scalatest"            % "3.1.2" % Test,
       "org.seleniumhq.selenium"  % "selenium-java"         % "3.141.59" % Test,
       "com.softwaremill.macwire" %% "macros"               % "2.3.3" % Provided
     ),

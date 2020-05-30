@@ -9,8 +9,8 @@ import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
 import scala.util.Try
 
-@JSExportTopLevel("IntegrationTestServiceSpec")
-object Main {
+@JSExportTopLevel("IntegrationTestRunner")
+object IntegrationTestRunner {
   @JSExport
   def run(port: Int): Unit = {
     // Signal testing has started
