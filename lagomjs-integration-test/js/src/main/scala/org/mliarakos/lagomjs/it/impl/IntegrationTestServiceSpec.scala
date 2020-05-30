@@ -10,8 +10,8 @@ import org.mliarakos.lagomjs.it.api.Input
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
 import org.mliarakos.lagomjs.it.api.Output
 import org.mliarakos.lagomjs.it.api.TestValues
-import org.scalatest.AsyncWordSpec
-import org.scalatest.Matchers
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AsyncWordSpec
 
 import scala.collection.immutable._
 import scala.concurrent.ExecutionContext

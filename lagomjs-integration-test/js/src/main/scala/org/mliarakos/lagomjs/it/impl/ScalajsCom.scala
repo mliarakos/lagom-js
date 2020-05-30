@@ -8,5 +8,4 @@ import scala.scalajs.js.annotation.JSGlobal
 object ScalajsCom extends js.Object {
   def init(onReceive: js.Function1[String, Unit]): Unit = js.native
   def send(msg: String): Unit                           = js.native
-  def close(): Unit                                     = js.native
 }
