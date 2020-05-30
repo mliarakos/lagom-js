@@ -6,10 +6,8 @@ import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import com.lightbend.lagom.scaladsl.api.transport.Method
 import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
-import org.mliarakos.lagomjs.it.api.Input
-import org.mliarakos.lagomjs.it.api.IntegrationTestService
-import org.mliarakos.lagomjs.it.api.Output
-import org.mliarakos.lagomjs.it.api.TestValues
+import org.mliarakos.lagomjs.it.api._
+import org.scalatest.Inside._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
@@ -198,6 +196,15 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
       } yield {
         val expected = Seq.fill(REPEAT)(Array.fill(REPEAT)(byte))
         (result.map(_.toArray) should contain).theSameElementsInOrderAs(expected)
+      }
+    }
+    "invoke an endpoint that uses a custom exception" in {
+      for {
+        result <- client.testException.invoke(A).failed
+      } yield {
+        inside(result) {
+          case ex: TestException => ex.exceptionMessage.detail shouldBe A
+        }
       }
     }
   }
