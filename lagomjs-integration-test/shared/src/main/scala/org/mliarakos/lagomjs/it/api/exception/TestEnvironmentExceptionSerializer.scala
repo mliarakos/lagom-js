@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.api
+package org.mliarakos.lagomjs.it.api.exception
 
 import com.lightbend.lagom.scaladsl.api.deser.DefaultExceptionSerializer
 import com.lightbend.lagom.scaladsl.api.transport.ExceptionMessage

@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import com.lightbend.lagom.scaladsl.server.LocalServiceLocator
 import com.lightbend.lagom.scaladsl.testkit.ServiceTest
-import org.mliarakos.lagomjs.it.api.TestMessage
+import org.mliarakos.lagomjs.it.test.TestMessage
 import org.openqa.selenium.chrome.ChromeOptions
 import org.scalajs.jsenv.Input.Script
 import org.scalajs.jsenv.RunConfig
@@ -24,7 +24,7 @@ class IntegrationTestServiceRunnerSpec extends AsyncWordSpec with Matchers {
 
   private val timeout = 30.seconds
   private val filename =
-    "./lagomjs-integration-test-server/target/web/web-modules/test/webjars/lib/lagomjs-integration-test-server/lagomjs-integration-test-opt.js"
+    "./lagomjs-integration-test-server/target/web/web-modules/test/webjars/lib/lagomjs-integration-test-server/lagomjs-integration-test-fastopt.js"
 
   private def receive(handler: MessageHandler): Try[Boolean] = {
     @tailrec

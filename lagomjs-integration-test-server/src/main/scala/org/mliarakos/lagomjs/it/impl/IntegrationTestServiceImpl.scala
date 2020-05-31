@@ -8,9 +8,9 @@ import akka.util.ByteString
 import com.lightbend.lagom.scaladsl.api.transport.Method
 import com.lightbend.lagom.scaladsl.server.ServerServiceCall
 import org.mliarakos.lagomjs.it.api.IntegrationTestService
-import org.mliarakos.lagomjs.it.api.Output
-import org.mliarakos.lagomjs.it.api.TestException
-import org.mliarakos.lagomjs.it.api.TestValues
+import org.mliarakos.lagomjs.it.api.domain.Output
+import org.mliarakos.lagomjs.it.api.exception.TestException
+import org.mliarakos.lagomjs.it.test.TestValues
 
 import scala.collection.immutable._
 import scala.concurrent.Future
@@ -118,4 +118,5 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
   override def testException = ServerServiceCall { msg =>
     Future.failed(TestException(msg))
   }
+
 }

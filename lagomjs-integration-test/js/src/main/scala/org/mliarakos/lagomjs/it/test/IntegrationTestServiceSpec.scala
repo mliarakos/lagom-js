@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.impl
+package org.mliarakos.lagomjs.it.test
 
 import akka.NotUsed
 import akka.stream.Materializer
@@ -7,6 +7,9 @@ import akka.stream.scaladsl.Source
 import com.lightbend.lagom.scaladsl.api.transport.Method
 import com.lightbend.lagom.scaladsl.api.transport.RequestHeader
 import org.mliarakos.lagomjs.it.api._
+import org.mliarakos.lagomjs.it.api.domain.Input
+import org.mliarakos.lagomjs.it.api.domain.Output
+import org.mliarakos.lagomjs.it.api.exception.TestException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 

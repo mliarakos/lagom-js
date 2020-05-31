@@ -381,6 +381,7 @@ lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
 lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
   .in(file("lagomjs-integration-test"))
+  .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-integration-test"
   )
@@ -388,7 +389,6 @@ lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
     publish / skip := true,
     publishLocal / skip := true
   )
-  .jvmSettings(commonSettings: _*)
   .jvmSettings(
     libraryDependencies ++= Seq(
       filters,
@@ -411,6 +411,7 @@ lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
 
 lazy val `lagomjs-integration-test-server` = project
   .in(file("lagomjs-integration-test-server"))
+  .settings(commonSettings: _*)
   .settings(
     name := "lagomjs-integration-test-server"
   )
@@ -418,7 +419,6 @@ lazy val `lagomjs-integration-test-server` = project
     publish / skip := true,
     publishLocal / skip := true
   )
-  .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
       lagomScaladslTestKit,
@@ -428,7 +428,8 @@ lazy val `lagomjs-integration-test-server` = project
       "com.softwaremill.macwire" %% "macros"               % "2.3.3" % Provided
     ),
     scalaJSProjects := Seq(`lagomjs-integration-test`.js),
-    pipelineStages in Assets := Seq(scalaJSPipeline)
+    pipelineStages in Assets := Seq(scalaJSPipeline),
+    devCommands in scalaJSPipeline ++= Seq("test", "testOnly")
   )
   .enablePlugins(SbtWeb, LagomScala)
   .dependsOn(`lagomjs-integration-test`.jvm)
