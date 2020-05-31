@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.impl
+package org.mliarakos.lagomjs.it.test
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal

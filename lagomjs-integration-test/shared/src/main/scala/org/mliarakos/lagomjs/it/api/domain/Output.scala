@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.api
+package org.mliarakos.lagomjs.it.api.domain
 
 import play.api.libs.json.Format
 import play.api.libs.json.Json

@@ -1,6 +1,5 @@
-package org.mliarakos.lagomjs.it.impl
+package org.mliarakos.lagomjs.it.test
 
-import org.mliarakos.lagomjs.it.api.TestMessage
 import org.scalajs.dom.console
 import org.scalatest.tools.MasterRunner
 import sbt.testing._

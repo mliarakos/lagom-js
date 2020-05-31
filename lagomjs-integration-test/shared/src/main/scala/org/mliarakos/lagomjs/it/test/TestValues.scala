@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.api
+package org.mliarakos.lagomjs.it.test
 
 object TestValues {
   val DEFAULT = "default"

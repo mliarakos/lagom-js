@@ -1,6 +1,5 @@
-package org.mliarakos.lagomjs.it.impl
+package org.mliarakos.lagomjs.it.test
 
-import org.mliarakos.lagomjs.it.api.TestMessage
 import sbt.testing.Event
 import sbt.testing.EventHandler
 import sbt.testing.Status

@@ -5,6 +5,9 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.transport.Method
+import org.mliarakos.lagomjs.it.api.domain.Input
+import org.mliarakos.lagomjs.it.api.domain.Output
+import org.mliarakos.lagomjs.it.api.exception.TestExceptionSerializer
 
 import scala.collection.immutable._
 

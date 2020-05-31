@@ -1,4 +1,4 @@
-package org.mliarakos.lagomjs.it.impl
+package org.mliarakos.lagomjs.it.test
 
 import org.scalajs.dom.console
 import sbt.testing.Logger
