@@ -398,8 +398,8 @@ lazy val `lagomjs-integration-test` = crossProject(JSPlatform, JVMPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js"  %% "scalajs-test-interface" % "1.0.1",
-      "org.scalatest" %%% "scalatest"             % "3.1.2"
+      "org.scala-js"  %% "scalajs-test-interface" % "1.2.0",
+      "org.scalatest" %%% "scalatest"             % "3.1.4"
     )
   )
   .jsConfigure(
@@ -422,14 +422,13 @@ lazy val `lagomjs-integration-test-server` = project
   .settings(
     libraryDependencies ++= Seq(
       lagomScaladslTestKit,
-      "org.scala-js"             %% "scalajs-env-selenium" % "1.0.0",
-      "org.scalatest"            %% "scalatest"            % "3.1.2" % Test,
+      "org.scala-js"             %% "scalajs-env-selenium" % "1.1.0",
+      "org.scalatest"            %% "scalatest"            % "3.1.4" % Test,
       "org.seleniumhq.selenium"  % "selenium-java"         % "3.141.59" % Test,
-      "com.softwaremill.macwire" %% "macros"               % "2.3.3" % Provided
+      "com.softwaremill.macwire" %% "macros"               % "2.3.6" % Provided
     ),
     scalaJSProjects := Seq(`lagomjs-integration-test`.js),
-    pipelineStages in Assets := Seq(scalaJSPipeline),
-    devCommands in scalaJSPipeline ++= Seq("test", "testOnly")
+    pipelineStages in Assets := Seq(scalaJSPipeline)
   )
   .enablePlugins(SbtWeb, LagomScala)
   .dependsOn(`lagomjs-integration-test`.jvm)
