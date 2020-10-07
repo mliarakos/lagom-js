@@ -4,11 +4,16 @@ import java.net.URI
 import java.nio.ByteBuffer
 
 import akka.NotUsed
+import akka.stream.Materializer
+import akka.stream.OverflowStrategy
+import akka.stream.StreamDetachedException
 import akka.stream.scaladsl.Flow
+import akka.stream.scaladsl.Keep
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
+import com.typesafe.config.Config
 import org.reactivestreams.Publisher
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
@@ -18,14 +23,21 @@ import org.scalajs.dom.WebSocket
 import org.scalajs.dom.raw.MessageEvent
 import play.api.http.Status
 
+import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
 import scala.scalajs.js.typedarray.ArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+import scala.util.Failure
+import scala.util.Success
 
-private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) extends LagomServiceApiBridge {
+private[lagom] abstract class WebSocketClient(config: Config)(implicit ec: ExecutionContext, materializer: Materializer)
+    extends LagomServiceApiBridge {
+
+  // Defines the internal buffer size for the websocket when using ServiceCalls containing a Source as it's not possible to use backpressure in the JS websocket implementation
+  val maxBufferSize = Option(config.getInt("lagom.client.websocket.scalajs.maxBufferSize")).filter(_!=0).getOrElse(1024)
 
   /**
    * Connect to the given URI
@@ -119,50 +131,73 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     private val NormalClosure   = 1000
     private var hasSubscription = false
 
+    // acts as a buffer between the backpressare unaware Websocket and backpressure aware reactive-streams Subscriber
+    val (messageSource, messageSink) = Source
+      .queue[ByteString](maxBufferSize, OverflowStrategy.fail)
+      .toMat(Sink.queue())(Keep.both)
+      .run()
+
+    // fill buffer even before a subscriber is connected, otherwise we might loose elements
+    socket.onmessage = { message =>
+      // The message data should be either an ArrayBuffer or a String
+      // It should not be a Blob because the socket binaryType was set
+      val data = message.data match {
+          case buffer: ArrayBuffer => ByteString.apply(TypedArrayBuffer.wrap(buffer))
+          case data                => ByteString.fromString(data.toString)
+        }
+
+      messageSource.offer(data).onComplete {
+        case Failure(exception) =>
+          throw exception
+        case _ =>
+      }
+    }
+
+    socket.onerror = event =>
+      messageSource.fail(new RuntimeException(s"WebSocket error: ${event.`type`}"))
+
+    // acting on the buffer instead of directly on the subscriber e.g. to make sure pending elements are delivered before completion
+    socket.onclose = event => {
+      if (event.code == NormalClosure) {
+        messageSource.complete()
+      } else {
+        // Complete the subscriber with an error because the socket closed with an error
+        // Parse the error reason as an exception
+        val bytes = ByteString.fromString(event.reason)
+        val exception =
+          exceptionSerializerDeserializeWebSocketException(exceptionSerializer, event.code, requestProtocol, bytes)
+        messageSource.fail(exception)
+      }
+    }
+
+    var completed = false
+
     override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
       if (!hasSubscription) {
         hasSubscription = true
 
-        // Forward messages from the socket to the subscriber
-        val onMessage = (message: MessageEvent) => {
-          // The message data should be either an ArrayBuffer or a String
-          // It should not be a Blob because the socket binaryType was set
-          val data = message.data match {
-            case buffer: ArrayBuffer => ByteString.apply(TypedArrayBuffer.wrap(buffer))
-            case data                => ByteString.fromString(data.toString)
-          }
-          subscriber.onNext(data)
-        }
-        // Complete the subscriber with an error if the socket encounters an error
-        val onError = (event: Event) => {
-          subscriber.onError(new RuntimeException(s"WebSocket error: ${event.`type`}"))
-        }
-        // Complete the subscriber when the socket closes based on the close code
-        val onClose = (event: CloseEvent) => {
-          if (event.code == NormalClosure) {
-            // Successfully complete the subscriber because the socket closed normally
-            subscriber.onComplete()
-          } else {
-            // Complete the subscriber with an error because the socket closed with an error
-            // Parse the error reason as an exception
-            val bytes = ByteString.fromString(event.reason)
-            val exception =
-              exceptionSerializerDeserializeWebSocketException(exceptionSerializer, event.code, requestProtocol, bytes)
-            subscriber.onError(exception)
-          }
-        }
-
         // Configure the subscriber to start the stream
         subscriber.onSubscribe(new Subscription {
-          private var hasStarted = false
-          // Configure the socket after the initial subscriber request
           override def request(n: Long): Unit = {
-            if (!hasStarted) {
-              hasStarted = true
-              socket.onmessage = onMessage
-              socket.onerror = onError
-              socket.addEventListener[CloseEvent]("close", onClose)
+            // pull as many elements as requested, but only as long as element Source has not completed
+            def pull(): Unit = {
+              messageSink.pull().onComplete {
+                case Failure(_: StreamDetachedException) =>
+                // happens when subscriber requests more items than available or Subscription.request() is called before all requested elements have been onNext'ed
+
+                case Failure(exception) =>
+                  subscriber.onError(exception)
+
+                case Success(Some(data)) =>
+                  subscriber.onNext(data)
+                  pull()
+
+                case Success(None) =>
+                  subscriber.onComplete()
+                  completed = true
+              }
             }
+            if (!completed) pull()
           }
           // Close the socket if the subscriber cancels
           override def cancel(): Unit = socket.close()
