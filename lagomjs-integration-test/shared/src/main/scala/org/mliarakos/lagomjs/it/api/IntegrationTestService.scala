@@ -37,15 +37,19 @@ trait IntegrationTestService extends Service {
 
   def testRestPatchCall(a: String): ServiceCall[Input, Output]
 
-  def testStreamingRequest(num: Int): ServiceCall[Source[String, NotUsed], Seq[String]]
+  def testStreamingRequest(limit: Int): ServiceCall[Source[Int, NotUsed], Seq[Int]]
 
-  def testBoundedStreamingResponse(num: Int): ServiceCall[String, Source[String, NotUsed]]
+  def testEmptyRequestBoundedStreamingResponse(start: Int, end: Int): ServiceCall[NotUsed, Source[Int, NotUsed]]
 
-  def testUnboundedStreamingResponse: ServiceCall[String, Source[String, NotUsed]]
+  def testRequestBoundedStreamingResponse(start: Int): ServiceCall[Int, Source[Int, NotUsed]]
 
-  def testBoundedStreaming(num: Int): ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+  def testEmptyRequestUnboundedStreamingResponse(start: Int): ServiceCall[NotUsed, Source[Int, NotUsed]]
 
-  def testUnboundedStreaming: ServiceCall[Source[String, NotUsed], Source[String, NotUsed]]
+  def testRequestUnboundedStreamingResponse: ServiceCall[Int, Source[Int, NotUsed]]
+
+  def testBoundedStreaming(limit: Int): ServiceCall[Source[Int, NotUsed], Source[Int, NotUsed]]
+
+  def testUnboundedStreaming: ServiceCall[Source[Int, NotUsed], Source[Int, NotUsed]]
 
   def testStreamingBinary(num: Int): ServiceCall[Byte, Source[ByteString, NotUsed]]
 
@@ -68,8 +72,10 @@ trait IntegrationTestService extends Service {
         restCall(Method.HEAD, "/rest/head", testRestHeadCall _),
         restCall(Method.PATCH, "/rest/patch/:a", testRestPatchCall _),
         pathCall("/stream/request?num", testStreamingRequest _),
-        pathCall("/stream/response/bounded?num", testBoundedStreamingResponse _),
-        pathCall("/stream/response/unbounded", testUnboundedStreamingResponse _),
+        pathCall("/stream/response/bounded/empty?start&end", testEmptyRequestBoundedStreamingResponse _),
+        pathCall("/stream/response/bounded/request?start", testRequestBoundedStreamingResponse _),
+        pathCall("/stream/response/unbounded/empty?start", testEmptyRequestUnboundedStreamingResponse _),
+        pathCall("/stream/response/unbounded/request", testRequestUnboundedStreamingResponse _),
         pathCall("/stream/both/bounded?num", testBoundedStreaming _),
         pathCall("/stream/both/unbounded", testUnboundedStreaming _),
         pathCall("/stream/binary?num", testStreamingBinary _),

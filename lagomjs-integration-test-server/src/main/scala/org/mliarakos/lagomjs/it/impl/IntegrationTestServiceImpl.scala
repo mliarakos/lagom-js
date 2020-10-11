@@ -14,7 +14,6 @@ import org.mliarakos.lagomjs.it.test.TestValues
 
 import scala.collection.immutable._
 import scala.concurrent.Future
-import scala.concurrent.duration._
 
 class IntegrationTestServiceImpl(implicit mat: Materializer) extends IntegrationTestService {
 
@@ -87,22 +86,32 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
     }
   }
 
-  override def testStreamingRequest(num: Int) = ServerServiceCall { source =>
-    source.take(num).runWith(Sink.seq)
+  override def testStreamingRequest(limit: Int) = ServerServiceCall { source =>
+    source.take(limit).runWith(Sink.seq)
   }
 
-  override def testBoundedStreamingResponse(num: Int) = ServerServiceCall { message =>
-    val source = Source(Seq.fill(num)(message))
+  override def testEmptyRequestBoundedStreamingResponse(start: Int, end: Int) = ServerServiceCall { _ =>
+    val source = Source(Seq.range(start, end))
     Future.successful(source)
   }
 
-  override def testUnboundedStreamingResponse = ServerServiceCall { message =>
-    val source = Source.tick(Duration.Zero, 100.milliseconds, message).mapMaterializedValue(_ => NotUsed)
+  override def testRequestBoundedStreamingResponse(start: Int) = ServerServiceCall { end =>
+    val source = Source(Seq.range(start, end))
     Future.successful(source)
   }
 
-  override def testBoundedStreaming(num: Int) = ServerServiceCall { source =>
-    Future.successful(source.take(num))
+  override def testEmptyRequestUnboundedStreamingResponse(start: Int) = ServerServiceCall { _ =>
+    val source = Source.unfold(start)(current => Some(current + 1, current))
+    Future.successful(source)
+  }
+
+  override def testRequestUnboundedStreamingResponse = ServerServiceCall { start =>
+    val source = Source.unfold(start)(current => Some(current + 1, current))
+    Future.successful(source)
+  }
+
+  override def testBoundedStreaming(limit: Int) = ServerServiceCall { source =>
+    Future.successful(source.take(limit))
   }
 
   override def testUnboundedStreaming = ServerServiceCall { source =>
