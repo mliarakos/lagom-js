@@ -13,6 +13,7 @@ import org.mliarakos.lagomjs.it.api.exception.TestException
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
+import scala.collection.mutable
 import scala.collection.immutable._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
@@ -230,10 +231,46 @@ class IntegrationTestServiceSpec extends AsyncWordSpec with Matchers {
         (result.map(_.toArray) should contain).theSameElementsInOrderAs(expected)
       }
     }
-    "invoke an endpoint that uses a custom exception" in {
+    "invoke an endpoint that fails with a custom exception" in {
       for {
         ex <- recoverToExceptionIf[TestException](client.testException.invoke(A))
       } yield {
+        ex.exceptionMessage.detail shouldBe A
+      }
+    }
+    "invoke an endpoint with a streaming response that immediately fails the service call with a custom exception" in {
+      val result = mutable.Buffer.empty[String]
+      for {
+        source <- client.testStreamingImmediateServiceException.invoke(A)
+        ex <- recoverToExceptionIf[TestException](
+          source.wireTap(result += _).completionTimeout(timeout).runWith(Sink.seq)
+        )
+      } yield {
+        result shouldBe empty
+        ex.exceptionMessage.detail shouldBe A
+      }
+    }
+    "invoke an endpoint with a streaming response that immediately fails the stream with a custom exception" in {
+      val result = mutable.Buffer.empty[String]
+      for {
+        source <- client.testStreamingImmediateStreamException.invoke(A)
+        ex <- recoverToExceptionIf[TestException](
+          source.wireTap(result += _).completionTimeout(timeout).runWith(Sink.seq)
+        )
+      } yield {
+        result shouldBe empty
+        ex.exceptionMessage.detail shouldBe A
+      }
+    }
+    "invoke an endpoint with a streaming response that eventually fails the stream with a custom exception" in {
+      val result = mutable.Buffer.empty[Int]
+      for {
+        source <- client.testStreamingEventualException(START, END).invoke(A)
+        ex <- recoverToExceptionIf[TestException](
+          source.wireTap(result += _).completionTimeout(timeout).runWith(Sink.seq)
+        )
+      } yield {
+        result shouldBe RESULT
         ex.exceptionMessage.detail shouldBe A
       }
     }
