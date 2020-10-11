@@ -128,4 +128,18 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
     Future.failed(TestException(msg))
   }
 
+  override def testStreamingImmediateServiceException = ServerServiceCall { msg =>
+    Future.failed(TestException(msg))
+  }
+
+  override def testStreamingImmediateStreamException = ServerServiceCall { msg =>
+    val source = Source.failed(TestException(msg))
+    Future.successful(source)
+  }
+
+  override def testStreamingEventualException(start: Int, end: Int) = ServerServiceCall { msg =>
+    val source = Source(Seq.range(start, end + 1)).map(elem => if (elem < end) elem else throw TestException(msg))
+    Future.successful(source)
+  }
+
 }

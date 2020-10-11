@@ -55,6 +55,12 @@ trait IntegrationTestService extends Service {
 
   def testException: ServiceCall[String, NotUsed]
 
+  def testStreamingImmediateServiceException: ServiceCall[String, Source[String, NotUsed]]
+
+  def testStreamingImmediateStreamException: ServiceCall[String, Source[String, NotUsed]]
+
+  def testStreamingEventualException(start: Int, end: Int): ServiceCall[String, Source[Int, NotUsed]]
+
   override def descriptor: Descriptor = {
     import Service._
     named("lagomjs-it")
@@ -79,7 +85,10 @@ trait IntegrationTestService extends Service {
         pathCall("/stream/both/bounded?num", testBoundedStreaming _),
         pathCall("/stream/both/unbounded", testUnboundedStreaming _),
         pathCall("/stream/binary?num", testStreamingBinary _),
-        pathCall("/exception", testException)
+        pathCall("/exception/strict", testException),
+        pathCall("/exception/streaming/immediate/service", testStreamingImmediateServiceException),
+        pathCall("/exception/streaming/immediate/stream", testStreamingImmediateStreamException),
+        pathCall("/exception/streaming/eventual?start&end", testStreamingEventualException _)
       )
       .withAcls(
         ServiceAcl.forMethodAndPathRegex(Method.OPTIONS, "/.*")
