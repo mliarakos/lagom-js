@@ -11,6 +11,7 @@ import akka.actor.CoordinatedShutdown
 import akka.stream.ActorMaterializer
 import akka.stream.Materializer
 import com.lightbend.lagom.internal.client.CircuitBreakerMetricsProviderImpl
+import com.lightbend.lagom.internal.client.WebSocketClientConfig
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactoryProvider
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslClientMacroImpl
 import com.lightbend.lagom.internal.scaladsl.client.ScaladslServiceClient
@@ -137,7 +138,7 @@ trait LagomServiceClientComponents extends TopicFactoryProvider { self: LagomCon
   lazy val defaultExceptionSerializer: ExceptionSerializer = new DefaultExceptionSerializer(environment)
 
   lazy val scaladslWebSocketClient: ScaladslWebSocketClient =
-    new ScaladslWebSocketClient(config)(executionContext, materializer)
+    new ScaladslWebSocketClient(WebSocketClientConfig(config))(executionContext, materializer)
   lazy val serviceClient: ServiceClient = new ScaladslServiceClient(
     scaladslWebSocketClient,
     serviceInfo,

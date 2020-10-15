@@ -6,15 +6,12 @@ import java.nio.ByteBuffer
 import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.OverflowStrategy
-import akka.stream.StreamDetachedException
 import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Keep
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
 import com.typesafe.config.Config
-import org.reactivestreams.Publisher
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import org.scalajs.dom.CloseEvent
@@ -29,16 +26,13 @@ import scala.scalajs.js.typedarray.ArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 import scala.util.Failure
-import scala.util.Success
 
-private[lagom] abstract class WebSocketClient(config: Config)(implicit ec: ExecutionContext, materializer: Materializer)
-    extends LagomServiceApiBridge {
+private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
+    implicit ec: ExecutionContext,
+    materializer: Materializer
+) extends LagomServiceApiBridge {
 
   private val NormalClosure = 1000
-
-  // Defines the internal buffer size for the websocket when using ServiceCalls containing a Source as it's not possible to use backpressure in the JS websocket implementation
-  val maxBufferSize =
-    Option(config.getInt("lagom.client.websocket.scalajs.maxBufferSize")).filter(_ != 0).getOrElse(1024)
 
   /**
    * Connect to the given URI
@@ -130,7 +124,7 @@ private[lagom] abstract class WebSocketClient(config: Config)(implicit ec: Execu
       requestProtocol: MessageProtocol
   ): Source[ByteString, NotUsed] = {
     // Create a buffer between the back-pressure unaware WebSocket and back-pressure aware stream
-    val (buffer, socketSource) = Source.queue[ByteString](maxBufferSize, OverflowStrategy.fail).preMaterialize()
+    val (buffer, socketSource) = Source.queue[ByteString](config.bufferSize, OverflowStrategy.fail).preMaterialize()
 
     // Forward messages from the socket to the buffer
     // Start filling the buffer even before the stream is connected to prevent loss of elements
@@ -170,5 +164,20 @@ private[lagom] abstract class WebSocketClient(config: Config)(implicit ec: Execu
     buffer.watchCompletion().onComplete(_ => socket.close())
 
     socketSource
+  }
+}
+
+private[lagom] sealed trait WebSocketClientConfig {
+  def bufferSize: Int
+  def maxFrameLength: Int
+}
+
+private[lagom] object WebSocketClientConfig {
+  def apply(conf: Config): WebSocketClientConfig =
+    new WebSocketClientConfigImpl(conf.getConfig("lagom.client.websocket"))
+
+  class WebSocketClientConfigImpl(conf: Config) extends WebSocketClientConfig {
+    val bufferSize     = conf.getInt("bufferSize")
+    val maxFrameLength = math.min(Int.MaxValue.toLong, conf.getBytes("frame.maxLength")).toInt
   }
 }

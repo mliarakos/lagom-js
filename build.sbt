@@ -232,12 +232,6 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
         sourceTarget
       )
 
-      val resourcesTarget = file("lagomjs-client") / "js" / "src" / "main" / "resources"
-      copyToSourceDirectory(
-        lagomTargetDirectory.value / "service" / "core" / "client" / "src" / "main" / "resources",
-        resourcesTarget
-      )
-
       val jsSources = sourceDirectory.value / "main" / "scala"
       applyOverrides(sourceTarget, jsSources)
     },
