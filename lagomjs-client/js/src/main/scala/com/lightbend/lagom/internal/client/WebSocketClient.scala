@@ -75,11 +75,15 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     val responseHeader = newResponseHeader(Status.SWITCHING_PROTOCOLS, protocol, Map.empty)
 
     // Fail if the socket fails to open
-    socket.onerror = (event: Event) => {
+    // Use an event listener and remove it if the socket opens successfully so that the socketSource can
+    // use socket onError for error handling
+    val openOnError = (event: Event) => {
       promise.failure(new RuntimeException(s"WebSocket error: ${event.`type`}"))
     }
+    socket.addEventListener[Event]("error", openOnError)
     // Succeed and start the data flow if the socket opens successfully
     socket.onopen = (_: Event) => {
+      socket.removeEventListener[Event]("error", openOnError)
       promise.success((responseHeader, outgoing.via(clientConnection)))
     }
 
@@ -91,11 +95,15 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
       exceptionSerializer: ExceptionSerializer
   ) extends Subscriber[ByteString] {
     override def onSubscribe(s: Subscription): Unit = {
+      // Cancel upstream when the socket closes
+      // Use an event listener so that the socketSource can use socket onClose
       socket.addEventListener[CloseEvent]("close", (_: CloseEvent) => s.cancel())
+      // Request unbounded demand since WebSockets do not support back-pressure
       s.request(Long.MaxValue)
     }
 
     override def onNext(t: ByteString): Unit = {
+      // Convert the message into a JavaScript ArrayBuffer
       val data = t.asByteBuffer
       val buffer =
         if (data.hasTypedArray()) {
@@ -107,6 +115,7 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     }
 
     override def onError(t: Throwable): Unit = {
+      // Close the socket in error based on the exception
       val rawExceptionMessage = exceptionSerializerSerialize(exceptionSerializer, t, Nil)
       val code                = rawExceptionMessageWebSocketCode(rawExceptionMessage)
       val message             = rawExceptionMessageMessageAsText(rawExceptionMessage)
@@ -123,7 +132,9 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
   ): Source[ByteString, NotUsed] = {
-    // Create a buffer between the back-pressure unaware WebSocket and back-pressure aware stream
+    // Create a buffer between the WebSocket and the stream to receive and buffer messages until the stream is set up
+    // and can start consuming messages
+    // The buffer is not designed to compensate for the lack of WebSocket back-pressure
     val (buffer, socketSource) = Source.queue[ByteString](config.bufferSize, OverflowStrategy.fail).preMaterialize()
 
     // Forward messages from the socket to the buffer
@@ -146,7 +157,7 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     socket.onerror = event => buffer.fail(new RuntimeException(s"WebSocket error: ${event.`type`}"))
 
     // Complete the buffer and ultimately the stream when the socket closes based on the close code
-    // This should ensure that pending elements are delivered before completion
+    // The buffer will ensure that pending elements are delivered before downstream completion
     socket.onclose = event => {
       if (event.code == NormalClosure) {
         buffer.complete()
