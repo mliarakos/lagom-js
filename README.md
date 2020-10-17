@@ -80,8 +80,40 @@ However, the service client does not support a few the features available in Lag
 - subscribing to topics: topic definitions are available in the service client, but attempting to subscribe to the topic throws an exception
 - advanced service locators: service locators outside of the built-in service locators, such as `AkkaDiscoveryServiceLocator`, are not available
 
-## Known issues
-`ServiceCalls` based on akka-stream `Source` are implemented using Websockets, which don't propagate backpressure. This might change with [WebSocketStream API](https://web.dev/websocketstream/) once it's widely available.
+## Configuration
+
+### WebSocket Connection Buffer
+
+Streaming service requests and responses are implemented using WebSockets. When starting a WebSocket connection there is a slight delay between the socket opening and the response stream being set up and ready to consume messages. To compensate for this delay the lagom.js WebSocket client uses a small receive buffer to hold messages until the stream is ready. The default buffer size can be set through configuration:
+
+```yaml
+lagom.client.websocket.bufferSize = 16
+```
+
+It is not recommended to use this buffer to compensate for the lack of WebSocket back-pressure described in the next section.
+
+### WebSocket Back-pressure
+
+Due to limitations in the WebSocket standard, the lagom.js WebSocket client does not support stream back-pressure for sending or receiving WebSocket data. This can cause overflow errors and stream failure when upstream and downstream rates differ. Akka [buffer](https://doc.akka.io/docs/akka/current/stream/stream-rate.html) and [throttle](https://doc.akka.io/docs/akka/current/stream/operators/Source-or-Flow/throttle.html) operators can be used to compensate for these issues. However, depending on the use case, it may not be possible to fully compensate for stream rate differences.
+
+For example, if a streaming response is producing too quickly it can be buffered:
+
+```scala
+client.fastStreamingResponse
+  .invoke()
+  .flatMap(source => {
+    source
+      .buffer(size = 1024, OverflowStrategy.fail)
+      .runForeach(message => /* process message */)
+  })
+  .onComplete({ /* handle stream completion */ })
+``` 
+
+If stream elements can be dropped then a different `OverflowStrategy` can be used to drop elements in place of back-pressure. Otherwise, the buffer size can be tuned to attempt to compensate.
+
+It's not recommended to use the WebSocket connection buffer for compensate for lack of back-pressure. Instead, users should apply their own buffer (or other stream rate approach) in order control it directly and per use case. 
+
+WebSocket back-pressure for streams may become available once the [WebSocketStream API](https://web.dev/websocketstream/) is complete and widely available.
 
 ## Releases
 
