@@ -94,9 +94,21 @@ It is not recommended to use this buffer to compensate for the lack of WebSocket
 
 ### WebSocket Back-pressure
 
-Due to limitations in the WebSocket standard, the lagom.js WebSocket client does not support stream back-pressure for sending or receiving WebSocket data. This can cause overflow errors and stream failure when upstream and downstream rates differ. Akka [buffer](https://doc.akka.io/docs/akka/current/stream/stream-rate.html) and [throttle](https://doc.akka.io/docs/akka/current/stream/operators/Source-or-Flow/throttle.html) operators can be used to compensate for these issues. However, depending on the use case, it may not be possible to fully compensate for stream rate differences.
+The current WebSocket standard prevents the lagom.js WebSocket client from supporting stream back-pressure for sending or receiving WebSocket data. This can cause overflow errors and stream failure when upstream production is faster than the downstream can handle. Akka [buffer](https://doc.akka.io/docs/akka/current/stream/stream-rate.html) and [throttle](https://doc.akka.io/docs/akka/current/stream/operators/Source-or-Flow/throttle.html) operators can be used to compensate for these issues. However, depending on the use case, it may not be possible to fully compensate for stream rate differences.
 
-For example, if a streaming response is producing too quickly it can be buffered:
+If the upstream is available before data is sent over the WebSocket then the stream can be throttled. For example, in a `ServiceCall` implementation:
+
+```scala
+override def zeros = ServerServiceCall { _ =>
+  // Throttle the source to 1 element per second
+  val source = Source.repeat(0).throttle(elements = 1, 1.second)
+  Future.successful(source)
+}
+```
+
+The `throttle` operator will back-pressure to achieve the desired rate and since the upstream can slow down in this example it will not overwhelm the downstream. The throttle parameters should be tuned per use case.
+
+If only the downstream is available then it can be buffered:
 
 ```scala
 client.fastStreamingResponse
@@ -109,9 +121,9 @@ client.fastStreamingResponse
   .onComplete({ /* handle stream completion */ })
 ``` 
 
-If stream elements can be dropped then a different `OverflowStrategy` can be used to drop elements in place of back-pressure. Otherwise, the buffer size can be tuned to attempt to compensate.
+The buffer size can be tuned to attempt to compensate for the fast streaming response. This is useful if the upstream has bursts of throughput that can overwhelm the downstream. However, an upstream rate that is consistently faster than the downstream will eventually overflow the buffer. If stream elements can be dropped then a different `OverflowStrategy` can be used to drop elements in place of back-pressure.
 
-It's not recommended to use the WebSocket connection buffer for compensate for lack of back-pressure. Instead, users should apply their own buffer (or other stream rate approach) in order control it directly and per use case. 
+It's not recommended to use the lagom.js WebSocket connection buffer for compensate for lack of back-pressure. Instead, users should apply their own buffer (or other stream rate approach) in order control it directly and per use case. 
 
 WebSocket back-pressure for streams may become available once the [WebSocketStream API](https://web.dev/websocketstream/) is complete and widely available.
 
