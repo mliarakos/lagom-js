@@ -1,38 +1,33 @@
 package com.lightbend.lagom.internal.client
 
-import java.net.URI
-import java.nio.ByteBuffer
-
 import akka.NotUsed
 import akka.stream.Materializer
-import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
 import com.typesafe.config.Config
+import org.reactivestreams.Publisher
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.Event
 import org.scalajs.dom.WebSocket
+import org.scalajs.dom.raw.Event
 import play.api.http.Status
 
+import java.net.URI
+import java.nio.ByteBuffer
+import scala.collection.immutable._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
-import scala.scalajs.js.typedarray.ArrayBuffer
-import scala.scalajs.js.typedarray.TypedArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
-import scala.util.Failure
 
 private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     implicit ec: ExecutionContext,
     materializer: Materializer
 ) extends LagomServiceApiBridge {
-
-  private val NormalClosure = 1000
 
   /**
    * Connect to the given URI
@@ -59,7 +54,8 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     val subscriber = new WebSocketSubscriber(socket, exceptionSerializer)
     val socketSink = Sink.fromSubscriber(subscriber)
     // Create source that will receive the incoming socket data and send it to the response source
-    val socketSource = createSocketSource(socket, exceptionSerializer, messageHeaderProtocol(requestHeader))
+    val publisher    = new WebSocketPublisher(socket, exceptionSerializer, messageHeaderProtocol(requestHeader))
+    val socketSource = Source.fromPublisher(publisher)
 
     // Create flow that represents sending data to and receiving data from the socket
     // The sending side is: socketSink -> socket -> service
@@ -127,55 +123,36 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     }
   }
 
-  private def createSocketSource(
+  private class WebSocketPublisher(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
-  ): Source[ByteString, NotUsed] = {
-    // Create a buffer between the WebSocket and the stream to receive and buffer messages until the stream is set up
-    // and can start consuming messages
-    // The buffer is not designed to compensate for the lack of WebSocket back-pressure
-    val (buffer, socketSource) = Source.queue[ByteString](config.bufferSize, OverflowStrategy.fail).preMaterialize()
+  ) extends Publisher[ByteString] {
+    private var hasSubscription = false
+    private val buffer          = new WebSocketStreamBuffer(socket, config.bufferSize, deserializeException)
 
-    // Forward messages from the socket to the buffer
-    // Start filling the buffer even before the stream is connected to prevent loss of elements
-    socket.onmessage = { message =>
-      // The message data should be either an ArrayBuffer or a String
-      // It should not be a Blob because the socket binaryType was set
-      val data = message.data match {
-        case buffer: ArrayBuffer => ByteString.apply(TypedArrayBuffer.wrap(buffer))
-        case data                => ByteString.fromString(data.toString)
-      }
+    private def deserializeException(code: Int, bytes: ByteString): Throwable =
+      exceptionSerializerDeserializeWebSocketException(exceptionSerializer, code, requestProtocol, bytes)
 
-      buffer.offer(data).onComplete {
-        case Failure(exception) => throw exception
-        case _                  =>
-      }
-    }
+    override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
+      if (!hasSubscription) {
+        hasSubscription = true
 
-    // Fail the buffer and ultimately the stream with an error if the socket encounters an error
-    socket.onerror = event => buffer.fail(new RuntimeException(s"WebSocket error: ${event.`type`}"))
+        // Attach the subscriber
+        // The buffer will send elements in response to requests
+        buffer.attach(subscriber)
 
-    // Complete the buffer and ultimately the stream when the socket closes based on the close code
-    // The buffer will ensure that pending elements are delivered before downstream completion
-    socket.onclose = event => {
-      if (event.code == NormalClosure) {
-        buffer.complete()
+        subscriber.onSubscribe(new Subscription {
+          override def request(n: Long): Unit = buffer.addDemand(n)
+          // Close the socket if the subscriber cancels
+          override def cancel(): Unit = socket.close()
+        })
       } else {
-        // Complete with an error because the socket closed with an error
-        // Parse the error reason as an exception
-        val bytes = ByteString.fromString(event.reason)
-        val exception =
-          exceptionSerializerDeserializeWebSocketException(exceptionSerializer, event.code, requestProtocol, bytes)
-        buffer.fail(exception)
+        subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
       }
     }
-
-    // Close the socket when the buffer completes
-    buffer.watchCompletion().onComplete(_ => socket.close())
-
-    socketSource
   }
+
 }
 
 private[lagom] sealed trait WebSocketClientConfig {
@@ -188,7 +165,10 @@ private[lagom] object WebSocketClientConfig {
     new WebSocketClientConfigImpl(conf.getConfig("lagom.client.websocket"))
 
   class WebSocketClientConfigImpl(conf: Config) extends WebSocketClientConfig {
-    val bufferSize     = conf.getInt("bufferSize")
+    val bufferSize = conf.getString("bufferSize") match {
+      case "unlimited" => Int.MaxValue
+      case _           => conf.getInt("bufferSize")
+    }
     val maxFrameLength = math.min(Int.MaxValue.toLong, conf.getBytes("frame.maxLength")).toInt
   }
 }
