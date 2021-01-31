@@ -86,13 +86,22 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     promise.future
   }
 
+  /**
+   * Subscriber that sends elements to a WebSocket
+   *
+   * It does not back-pressure because WebSockets do not support back-pressure.
+   *
+   * This is used in conjunction with [[WebSocketPublisher]] to create a flow that represents sending data to and
+   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * publisher is done by closing the socket.
+   */
   private class WebSocketSubscriber(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer
   ) extends Subscriber[ByteString] {
     override def onSubscribe(s: Subscription): Unit = {
       // Cancel upstream when the socket closes
-      // Use an event listener so that the socketSource can use socket onClose
+      // Use an event listener so that the WebSocketPublisher can use socket onClose
       socket.addEventListener[CloseEvent]("close", (_: CloseEvent) => s.cancel())
       // Request unbounded demand since WebSockets do not support back-pressure
       s.request(Long.MaxValue)
@@ -101,13 +110,17 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     override def onNext(t: ByteString): Unit = {
       // Convert the message into a JavaScript ArrayBuffer
       val data = t.asByteBuffer
-      val buffer =
+      val buffer = {
         if (data.hasTypedArray()) {
           data.typedArray().subarray(data.position, data.limit).buffer
         } else {
           ByteBuffer.allocateDirect(data.remaining).put(data).typedArray().buffer
         }
-      socket.send(buffer)
+      }
+      // Send the message if the socket is open
+      // This protects against the case when the socket is closed, the stream is cancelled, and the stream tries to
+      // finish sending pending messages to a closed socket
+      if (socket.readyState == WebSocket.OPEN) socket.send(buffer)
     }
 
     override def onError(t: Throwable): Unit = {
@@ -123,33 +136,65 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
     }
   }
 
+  /**
+   * Publisher that receives elements from a WebSocket
+   *
+   * It buffers elements to compensate for the delay between WebSocket connection and stream start and for the lack of
+   * WebSocket back-pressure.
+   *
+   * This is used in conjunction with [[WebSocketSubscriber]] to create a flow that represents sending data to and
+   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * publisher is done by closing the socket.
+   */
   private class WebSocketPublisher(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
   ) extends Publisher[ByteString] {
-    private var hasSubscription = false
-    private val buffer          = new WebSocketStreamBuffer(socket, config.bufferSize, deserializeException)
+    import WebSocketPublisher._
+
+    // The buffer handles queueing elements, tracking subscriber demand, and sending elements in response to demand
+    private val buffer = new WebSocketStreamBuffer(socket, config.bufferSize, deserializeException)
 
     private def deserializeException(code: Int, bytes: ByteString): Throwable =
       exceptionSerializerDeserializeWebSocketException(exceptionSerializer, code, requestProtocol, bytes)
 
     override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      if (!hasSubscription) {
-        hasSubscription = true
-
-        // Attach the subscriber
-        // The buffer will send elements in response to requests
-        buffer.attach(subscriber)
-
-        subscriber.onSubscribe(new Subscription {
-          override def request(n: Long): Unit = buffer.addDemand(n)
-          // Close the socket if the subscriber cancels
-          override def cancel(): Unit = socket.close()
-        })
+      if (subscriber != null) {
+        // This publisher only supports one subscriber
+        if (!buffer.isSubscribed) {
+          // Attach the subscriber
+          // The buffer will send elements in response to requests
+          buffer.attach(subscriber)
+          // Create subscription
+          subscriber.onSubscribe(new BufferSubscription(buffer))
+        } else {
+          // Use a dummy subscription and error the subscriber
+          subscriber.onSubscribe(ErrorSubscription)
+          subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
+        }
       } else {
-        subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
+        throw new NullPointerException("Subscriber is null")
       }
+    }
+  }
+
+  private object WebSocketPublisher {
+
+    /** Subscription that interacts with the WebSocketStreamBuffer */
+    class BufferSubscription(buffer: WebSocketStreamBuffer) extends Subscription {
+      // Add request to the outstanding buffer demand
+      override def request(n: Long): Unit = buffer.addDemand(n)
+
+      // Cancel the buffer
+      // The buffer cancels immediately and does not delivery any pending elements
+      override def cancel(): Unit = buffer.cancel()
+    }
+
+    /** Dummy subscription used to set up subscriber and in order to immediately error the subscriber */
+    object ErrorSubscription extends Subscription {
+      override def request(n: Long): Unit = {}
+      override def cancel(): Unit         = {}
     }
   }
 
@@ -157,7 +202,6 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
 
 private[lagom] sealed trait WebSocketClientConfig {
   def bufferSize: Int
-  def maxFrameLength: Int
 }
 
 private[lagom] object WebSocketClientConfig {
@@ -169,6 +213,5 @@ private[lagom] object WebSocketClientConfig {
       case "unlimited" => Int.MaxValue
       case _           => conf.getInt("bufferSize")
     }
-    val maxFrameLength = math.min(Int.MaxValue.toLong, conf.getBytes("frame.maxLength")).toInt
   }
 }
