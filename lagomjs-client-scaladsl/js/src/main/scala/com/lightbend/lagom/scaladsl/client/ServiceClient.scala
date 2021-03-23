@@ -22,7 +22,6 @@ import com.lightbend.lagom.scaladsl.api._
 import com.lightbend.lagom.scaladsl.api.broker.Topic
 import com.lightbend.lagom.scaladsl.api.deser.DefaultExceptionSerializer
 import com.lightbend.lagom.scaladsl.api.deser.ExceptionSerializer
-import com.typesafe.config.ConfigFactory
 import play.api.Configuration
 import play.api.Environment
 import play.api.Mode
@@ -268,7 +267,7 @@ abstract class LagomClientFactory(
   override lazy val serviceInfo: ServiceInfo = ServiceInfo(clientName, immutable.Seq.empty)
   override lazy val environment: Environment = Environment(new File("."), classLoader, Mode.Prod)
 
-  lazy val configuration: Configuration                = Configuration.load(Map.empty, ConfigFactory.load())
+  lazy val configuration: Configuration                = Configuration.load(Map.empty, lagomjs.Config.default)
   override lazy val executionContext: ExecutionContext = actorSystem.dispatcher
 
   /**
