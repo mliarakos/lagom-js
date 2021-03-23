@@ -16,8 +16,14 @@ case class Configuration(underlying: Config)
 
 object Configuration {
   def load(directSettings: Map[String, Any], defaultConfig: Config): Configuration = {
-    val directConfig   = ConfigFactory.parseMap(directSettings.asJava)
-    val combinedConfig = directConfig.withFallback(defaultConfig)
+    // Prevent one level of config nesting as a temporary partial work around to:
+    // https://github.com/akka-js/shocon/issues/55
+    val combinedConfig = if (directSettings.nonEmpty) {
+      val directConfig = ConfigFactory.parseMap(directSettings.asJava)
+      directConfig.withFallback(defaultConfig)
+    } else {
+      defaultConfig
+    }
     val resolvedConfig = ConfigFactory.load(combinedConfig)
 
     Configuration(resolvedConfig)
