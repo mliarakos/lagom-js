@@ -50,7 +50,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := s"0.4.1-$baseLagomVersion-SNAPSHOT"
+  version := s"0.5.0-$baseLagomVersion-SNAPSHOT"
 )
 
 lazy val commonJsSettings = Seq(
@@ -230,12 +230,6 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
       copyToSourceDirectory(
         lagomTargetDirectory.value / "service" / "core" / "client" / "src" / "main" / "scala",
         sourceTarget
-      )
-
-      val resourcesTarget = file("lagomjs-client") / "js" / "src" / "main" / "resources"
-      copyToSourceDirectory(
-        lagomTargetDirectory.value / "service" / "core" / "client" / "src" / "main" / "resources",
-        resourcesTarget
       )
 
       val jsSources = sourceDirectory.value / "main" / "scala"

@@ -1,31 +1,33 @@
 package com.lightbend.lagom.internal.client
 
-import java.net.URI
-import java.nio.ByteBuffer
-
 import akka.NotUsed
+import akka.stream.Materializer
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
+import com.typesafe.config.Config
 import org.reactivestreams.Publisher
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import org.scalajs.dom.CloseEvent
-import org.scalajs.dom.Event
 import org.scalajs.dom.WebSocket
-import org.scalajs.dom.raw.MessageEvent
+import org.scalajs.dom.raw.Event
 import play.api.http.Status
 
+import java.net.URI
+import java.nio.ByteBuffer
+import scala.collection.immutable._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
-import scala.scalajs.js.typedarray.ArrayBuffer
-import scala.scalajs.js.typedarray.TypedArrayBuffer
 import scala.scalajs.js.typedarray.TypedArrayBufferOps._
 
-private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) extends LagomServiceApiBridge {
+private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
+    implicit ec: ExecutionContext,
+    materializer: Materializer
+) extends LagomServiceApiBridge {
 
   /**
    * Connect to the given URI
@@ -54,6 +56,7 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     // Create source that will receive the incoming socket data and send it to the response source
     val publisher    = new WebSocketPublisher(socket, exceptionSerializer, messageHeaderProtocol(requestHeader))
     val socketSource = Source.fromPublisher(publisher)
+
     // Create flow that represents sending data to and receiving data from the socket
     // The sending side is: socketSink -> socket -> service
     // The receiving side is: service -> socket -> socketSource
@@ -68,38 +71,60 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     val responseHeader = newResponseHeader(Status.SWITCHING_PROTOCOLS, protocol, Map.empty)
 
     // Fail if the socket fails to open
-    socket.onerror = (event: Event) => {
+    // Use an event listener and remove it if the socket opens successfully so that the socketSource can
+    // use socket onError for error handling
+    val openOnError = (event: Event) => {
       promise.failure(new RuntimeException(s"WebSocket error: ${event.`type`}"))
     }
+    socket.addEventListener[Event]("error", openOnError)
     // Succeed and start the data flow if the socket opens successfully
     socket.onopen = (_: Event) => {
+      socket.removeEventListener[Event]("error", openOnError)
       promise.success((responseHeader, outgoing.via(clientConnection)))
     }
 
     promise.future
   }
 
+  /**
+   * Subscriber that sends elements to a WebSocket
+   *
+   * It does not back-pressure because WebSockets do not support back-pressure.
+   *
+   * This is used in conjunction with [[WebSocketPublisher]] to create a flow that represents sending data to and
+   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * publisher is done by closing the socket.
+   */
   private class WebSocketSubscriber(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer
   ) extends Subscriber[ByteString] {
     override def onSubscribe(s: Subscription): Unit = {
+      // Cancel upstream when the socket closes
+      // Use an event listener so that the WebSocketPublisher can use socket onClose
       socket.addEventListener[CloseEvent]("close", (_: CloseEvent) => s.cancel())
+      // Request unbounded demand since WebSockets do not support back-pressure
       s.request(Long.MaxValue)
     }
 
     override def onNext(t: ByteString): Unit = {
+      // Convert the message into a JavaScript ArrayBuffer
       val data = t.asByteBuffer
-      val buffer =
+      val buffer = {
         if (data.hasTypedArray()) {
           data.typedArray().subarray(data.position, data.limit).buffer
         } else {
           ByteBuffer.allocateDirect(data.remaining).put(data).typedArray().buffer
         }
-      socket.send(buffer)
+      }
+      // Send the message if the socket is open
+      // This protects against the case when the socket is closed, the stream is cancelled, and the stream tries to
+      // finish sending pending messages to a closed socket
+      if (socket.readyState == WebSocket.OPEN) socket.send(buffer)
     }
 
     override def onError(t: Throwable): Unit = {
+      // Close the socket in error based on the exception
       val rawExceptionMessage = exceptionSerializerSerialize(exceptionSerializer, t, Nil)
       val code                = rawExceptionMessageWebSocketCode(rawExceptionMessage)
       val message             = rawExceptionMessageMessageAsText(rawExceptionMessage)
@@ -111,65 +136,82 @@ private[lagom] abstract class WebSocketClient()(implicit ec: ExecutionContext) e
     }
   }
 
+  /**
+   * Publisher that receives elements from a WebSocket
+   *
+   * It buffers elements to compensate for the delay between WebSocket connection and stream start and for the lack of
+   * WebSocket back-pressure.
+   *
+   * This is used in conjunction with [[WebSocketSubscriber]] to create a flow that represents sending data to and
+   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * publisher is done by closing the socket.
+   */
   private class WebSocketPublisher(
       socket: WebSocket,
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
   ) extends Publisher[ByteString] {
-    private val NormalClosure   = 1000
-    private var hasSubscription = false
+    import WebSocketPublisher._
+
+    // The buffer handles queueing elements, tracking subscriber demand, and sending elements in response to demand
+    private val buffer = new WebSocketStreamBuffer(socket, config.bufferSize, deserializeException)
+
+    private def deserializeException(code: Int, bytes: ByteString): Throwable =
+      exceptionSerializerDeserializeWebSocketException(exceptionSerializer, code, requestProtocol, bytes)
 
     override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      if (!hasSubscription) {
-        hasSubscription = true
-
-        // Forward messages from the socket to the subscriber
-        val onMessage = (message: MessageEvent) => {
-          // The message data should be either an ArrayBuffer or a String
-          // It should not be a Blob because the socket binaryType was set
-          val data = message.data match {
-            case buffer: ArrayBuffer => ByteString.apply(TypedArrayBuffer.wrap(buffer))
-            case data                => ByteString.fromString(data.toString)
-          }
-          subscriber.onNext(data)
+      if (subscriber != null) {
+        // This publisher only supports one subscriber
+        if (!buffer.isSubscribed) {
+          // Attach the subscriber
+          // The buffer will send elements in response to requests
+          buffer.attach(subscriber)
+          // Create subscription
+          subscriber.onSubscribe(new BufferSubscription(buffer))
+        } else {
+          // Use a dummy subscription and error the subscriber
+          subscriber.onSubscribe(ErrorSubscription)
+          subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
         }
-        // Complete the subscriber with an error if the socket encounters an error
-        val onError = (event: Event) => {
-          subscriber.onError(new RuntimeException(s"WebSocket error: ${event.`type`}"))
-        }
-        // Complete the subscriber when the socket closes based on the close code
-        val onClose = (event: CloseEvent) => {
-          if (event.code == NormalClosure) {
-            // Successfully complete the subscriber because the socket closed normally
-            subscriber.onComplete()
-          } else {
-            // Complete the subscriber with an error because the socket closed with an error
-            // Parse the error reason as an exception
-            val bytes = ByteString.fromString(event.reason)
-            val exception =
-              exceptionSerializerDeserializeWebSocketException(exceptionSerializer, event.code, requestProtocol, bytes)
-            subscriber.onError(exception)
-          }
-        }
-
-        // Configure the subscriber to start the stream
-        subscriber.onSubscribe(new Subscription {
-          private var hasStarted = false
-          // Configure the socket after the initial subscriber request
-          override def request(n: Long): Unit = {
-            if (!hasStarted) {
-              hasStarted = true
-              socket.onmessage = onMessage
-              socket.onerror = onError
-              socket.addEventListener[CloseEvent]("close", onClose)
-            }
-          }
-          // Close the socket if the subscriber cancels
-          override def cancel(): Unit = socket.close()
-        })
       } else {
-        subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
+        throw new NullPointerException("Subscriber is null")
       }
+    }
+  }
+
+  private object WebSocketPublisher {
+
+    /** Subscription that interacts with the WebSocketStreamBuffer */
+    class BufferSubscription(buffer: WebSocketStreamBuffer) extends Subscription {
+      // Add request to the outstanding buffer demand
+      override def request(n: Long): Unit = buffer.addDemand(n)
+
+      // Cancel the buffer
+      // The buffer cancels immediately and does not delivery any pending elements
+      override def cancel(): Unit = buffer.cancel()
+    }
+
+    /** Dummy subscription used to set up subscriber and in order to immediately error the subscriber */
+    object ErrorSubscription extends Subscription {
+      override def request(n: Long): Unit = {}
+      override def cancel(): Unit         = {}
+    }
+  }
+
+}
+
+private[lagom] sealed trait WebSocketClientConfig {
+  def bufferSize: Int
+}
+
+private[lagom] object WebSocketClientConfig {
+  def apply(conf: Config): WebSocketClientConfig =
+    new WebSocketClientConfigImpl(conf.getConfig("lagom.client.websocket"))
+
+  class WebSocketClientConfigImpl(conf: Config) extends WebSocketClientConfig {
+    val bufferSize = conf.getString("bufferSize") match {
+      case "unlimited" => Int.MaxValue
+      case _           => conf.getInt("bufferSize")
     }
   }
 }
