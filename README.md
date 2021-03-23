@@ -78,13 +78,13 @@ Lagom.js supports cross compiling the full Lagom service API into JavaScript. Th
 However, the service client does not support a few the features available in Lagom:
 - full circuit breaker metrics: circuit breakers are fully supported, but the built-in circuit breaker metrics implementation only collects a few basic metrics
 - subscribing to topics: topic definitions are available in the service client, but attempting to subscribe to the topic throws an exception
-- advanced service locators: service locators outside of the built-in service locators, such as `AkkaDiscoveryServiceLocator`, are not available
+- advanced service locators: service locators outside the built-in service locators, such as `AkkaDiscoveryServiceLocator`, are not available
 
 ## Configuration
 
 ### Application Configuration
 
-Lagom.js uses [shocon](https://github.com/akka-js/shocon) as a Scala.js replacement for [Typesafe Config](https://github.com/lightbend/config). The library loads [default configurations](https://github.com/akka-js/shocon#loading-of-default-configuration) at compile time. If you use an application config (`application.conf`) then you need to fall back to the default Lagom.js config:
+Lagom.js uses [shocon](https://github.com/akka-js/shocon) as a Scala.js replacement for [Typesafe Config](https://github.com/lightbend/config). The library loads [default configurations](https://github.com/akka-js/shocon#loading-of-default-configuration) at compile time. If you use an application config (`application.conf`) then you need to manually load the config and fall back to the default Lagom.js config:
 
 ```scala
 abstract class MyApplication extends StandaloneLagomClientFactory("my-aplication") {
