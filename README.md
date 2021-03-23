@@ -87,7 +87,7 @@ However, the service client does not support a few the features available in Lag
 Lagom.js uses [shocon](https://github.com/akka-js/shocon) as a Scala.js replacement for [Typesafe Config](https://github.com/lightbend/config). The library loads [default configurations](https://github.com/akka-js/shocon#loading-of-default-configuration) at compile time. If you use an application config (`application.conf`) then you need to manually load the config and fall back to the default Lagom.js config:
 
 ```scala
-abstract class MyApplication extends StandaloneLagomClientFactory("my-aplication") {
+abstract class MyApplication extends StandaloneLagomClientFactory("my-application") {
   // Load application config with the lagomjs default config as the fallback
   lazy val conf = ConfigFactory.load().withFallback(lagomjs.Config.default)
   override lazy val configuration: Configuration = Configuration(conf)
@@ -97,7 +97,7 @@ abstract class MyApplication extends StandaloneLagomClientFactory("my-aplication
 This also applies to parsed configs:
 
 ```scala
-abstract class MyApplication extends StandaloneLagomClientFactory("my-aplication") {
+abstract class MyApplication extends StandaloneLagomClientFactory("my-application") {
   // Parse config with the lagomjs default config as the fallback
   lazy val conf = ConfigFactory.parseString("""
     lagom.client.websocket {
