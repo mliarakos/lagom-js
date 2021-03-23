@@ -108,6 +108,8 @@ abstract class MyApplication extends StandaloneLagomClientFactory("my-aplication
 }
 ```
 
+This approach is based on [Akka.js configurations](https://github.com/akka-js/akka.js#add-ons).
+
 ### WebSocket Stream Buffer
 
 Streaming service requests and responses are implemented using WebSockets. When starting a WebSocket connection there is a slight delay between the socket opening and the response stream being set up and ready to consume messages. To compensate for this delay the lagom.js WebSocket client uses a receive buffer to hold messages until the stream is ready. The buffer size can be set through configuration:
