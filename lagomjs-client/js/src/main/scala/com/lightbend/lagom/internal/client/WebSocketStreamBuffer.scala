@@ -4,6 +4,7 @@ import akka.stream.BufferOverflowException
 import akka.util.ByteString
 import com.lightbend.lagom.internal.client.WebSocketStreamBuffer._
 import org.reactivestreams.Subscriber
+import org.reactivestreams.Subscription
 import org.scalajs.dom.WebSocket
 
 import scala.collection.mutable
@@ -74,7 +75,6 @@ private[lagom] class WebSocketStreamBuffer(
 
   // Delegate all operations to the current state
 
-  def isSubscribed: Boolean                                 = state.isSubscribed
   def attach(subscriber: Subscriber[_ >: ByteString]): Unit = state.attach(subscriber)
   def addDemand(n: Long): Unit                              = state.addDemand(n)
   def cancel(): Unit                                        = state.cancel()
@@ -84,7 +84,9 @@ private[lagom] class WebSocketStreamBuffer(
   private def error(exception: Throwable): Unit  = state.error(exception)
 
   // Internal method used by the state to transition to a new sate
-  private def transition(next: State): Unit = state = next
+  private def transition(next: State): Unit = {
+    state = next
+  }
 }
 
 private object WebSocketStreamBuffer {
@@ -92,13 +94,6 @@ private object WebSocketStreamBuffer {
   val ApplicationFailureCode = 4000
 
   sealed trait State {
-
-    /**
-     * Indicates whether the state has a subscriber
-     *
-     * @return true if subscribed, otherwise false
-     */
-    def isSubscribed: Boolean
 
     /**
      * Add the given message to the queue
@@ -165,7 +160,7 @@ private object WebSocketStreamBuffer {
      * @return optional exception if the buffer size is exceeded
      */
     protected def checkSize: Option[Throwable] = {
-      if ((queue.size + 1) > bufferSize) Some(BufferOverflowException(s"Exceeded buffer size of $bufferSize"))
+      if (queue.size >= bufferSize) Some(BufferOverflowException(s"Exceeded buffer size of $bufferSize"))
       else None
     }
   }
@@ -219,8 +214,6 @@ private object WebSocketStreamBuffer {
       with QueueSize {
     val queue: mutable.Queue[ByteString] = mutable.Queue.empty
 
-    override def isSubscribed: Boolean = false
-
     /**
      * Add message to the queue
      *
@@ -240,7 +233,7 @@ private object WebSocketStreamBuffer {
      * Attach the given subscriber and transition to the Streaming state
      */
     override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      val streaming = Streaming(queue, bufferSize, subscriber)
+      val streaming = Streaming(queue, bufferSize, PreparedSubscriber(subscriber))
       buffer.transition(streaming)
     }
 
@@ -293,8 +286,6 @@ private object WebSocketStreamBuffer {
   case class Full(queue: mutable.Queue[ByteString])(implicit buffer: WebSocketStreamBuffer, socket: WebSocket)
       extends State {
 
-    override def isSubscribed: Boolean = false
-
     /**
      * Transition to the Failed state because this operation is not supported after the buffer is completed
      */
@@ -308,7 +299,7 @@ private object WebSocketStreamBuffer {
      * Attach the given subscriber and transition to the Draining state
      */
     override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      val draining = Draining(queue, subscriber)
+      val draining = Draining(queue, PreparedSubscriber(subscriber))
       buffer.transition(draining)
     }
 
@@ -355,7 +346,7 @@ private object WebSocketStreamBuffer {
   case class Streaming(
       queue: mutable.Queue[ByteString],
       bufferSize: Int,
-      subscriber: Subscriber[_ >: ByteString]
+      preparedSubscriber: PreparedSubscriber
   )(implicit val buffer: WebSocketStreamBuffer, val socket: WebSocket)
       extends State
       with QueueSize
@@ -363,8 +354,7 @@ private object WebSocketStreamBuffer {
       with Cancelable {
     // Cumulative outstanding demand starting at 0
     private var demand = 0L
-
-    override def isSubscribed: Boolean = true
+    val subscriber     = preparedSubscriber.subscriber
 
     /**
      * Add message to the queue and fulfill demand is possible
@@ -377,18 +367,18 @@ private object WebSocketStreamBuffer {
         queue.enqueue(message)
         demand = fulfill(demand)
       })(exception => {
-        val failed = Failed(exception, Some(subscriber))
+        val failed = Failed(exception, subscriber)
         buffer.transition(failed)
       })
     }
 
     /**
-     * Transition to the Failed state because this operation is not supported when a subscriber is already attached
+     * Fail the new subscriber
+     *
+     * Buffer operations continue for the existing subscriber.
      */
     override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      val exception = new UnsupportedOperationException("Buffer already has attached subscriber")
-      val failed    = Failed(exception)
-      buffer.transition(failed)
+      PreparedSubscriber.failSingle(subscriber)
     }
 
     /**
@@ -399,7 +389,7 @@ private object WebSocketStreamBuffer {
         demand = fulfill(demand + n)
       } else {
         val exception = new IllegalArgumentException(s"Demand of $n is not positive")
-        val failed    = Failed(exception)
+        val failed    = Failed(exception, subscriber)
         buffer.transition(failed)
       }
     }
@@ -409,7 +399,7 @@ private object WebSocketStreamBuffer {
      */
     override def complete(): Unit = {
       val state: State = {
-        if (queue.nonEmpty) Draining(queue, subscriber, demand)
+        if (queue.nonEmpty) Draining(queue, preparedSubscriber, demand)
         else Completed(subscriber)
       }
       buffer.transition(state)
@@ -419,7 +409,7 @@ private object WebSocketStreamBuffer {
      * Error the buffer by transitioning to the Failed state with the given exception
      */
     override def error(exception: Throwable): Unit = {
-      val failed = Failed(exception, Some(subscriber))
+      val failed = Failed(exception, subscriber)
       buffer.transition(failed)
     }
   }
@@ -433,32 +423,31 @@ private object WebSocketStreamBuffer {
    */
   case class Draining(
       queue: mutable.Queue[ByteString],
-      subscriber: Subscriber[_ >: ByteString],
+      preparedSubscriber: PreparedSubscriber,
       initialDemand: Long = 0L
   )(implicit val buffer: WebSocketStreamBuffer, val socket: WebSocket)
       extends State
       with Fulfill
       with Cancelable {
     private var demand = initialDemand
-
-    override def isSubscribed: Boolean = true
+    val subscriber     = preparedSubscriber.subscriber
 
     /**
      * Transition to the Failed state because this operation is not supported after the buffer is completed
      */
     override def enqueue(message: ByteString): Unit = {
       val exception = new UnsupportedOperationException("Can not add messages after the buffer is closed")
-      val failed    = Failed(exception)
+      val failed    = Failed(exception, subscriber)
       buffer.transition(failed)
     }
 
     /**
-     * Transition to the Failed state because this operation is not supported when a subscriber is already attached
+     * Fail the new subscriber
+     *
+     * Buffer operations continue for the existing subscriber.
      */
     override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = {
-      val exception = new UnsupportedOperationException("Buffer already has attached subscriber")
-      val failed    = Failed(exception)
-      buffer.transition(failed)
+      PreparedSubscriber.failSingle(subscriber)
     }
 
     /**
@@ -473,7 +462,7 @@ private object WebSocketStreamBuffer {
         }
       } else {
         val exception = new IllegalArgumentException(s"Demand of $n is not positive")
-        val failed    = Failed(exception)
+        val failed    = Failed(exception, subscriber)
         buffer.transition(failed)
       }
     }
@@ -487,7 +476,7 @@ private object WebSocketStreamBuffer {
      * Error the buffer by transitioning to the Failed state with the given exception
      */
     override def error(exception: Throwable): Unit = {
-      val failed = Failed(exception, Some(subscriber))
+      val failed = Failed(exception, subscriber)
       buffer.transition(failed)
     }
   }
@@ -502,17 +491,12 @@ private object WebSocketStreamBuffer {
     socket.close()
     subscriber.onComplete()
 
-    override def isSubscribed: Boolean                                 = true
-    override def enqueue(message: ByteString): Unit                    = fail()
-    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = fail()
-    override def addDemand(n: Long): Unit                              = fail()
+    override def enqueue(message: ByteString): Unit                    = {}
+    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = PreparedSubscriber.failSingle(subscriber)
+    override def addDemand(n: Long): Unit                              = {}
     override def complete(): Unit                                      = {}
-    override def cancel(): Unit                                        = fail()
-    override def error(exception: Throwable): Unit                     = fail()
-
-    private def fail(): Unit = {
-      throw new UnsupportedOperationException("Buffer is complete")
-    }
+    override def cancel(): Unit                                        = {}
+    override def error(exception: Throwable): Unit                     = {}
   }
 
   /**
@@ -524,17 +508,12 @@ private object WebSocketStreamBuffer {
   case class Cancelled()(implicit socket: WebSocket) extends State {
     socket.close()
 
-    override def isSubscribed: Boolean                                 = true
     override def enqueue(message: ByteString): Unit                    = {}
-    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = fail()
-    override def addDemand(n: Long): Unit                              = fail()
+    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = PreparedSubscriber.failSingle(subscriber)
+    override def addDemand(n: Long): Unit                              = {}
     override def complete(): Unit                                      = {}
     override def cancel(): Unit                                        = {}
-    override def error(exception: Throwable): Unit                     = fail()
-
-    private def fail(): Unit = {
-      throw new UnsupportedOperationException("Buffer is cancelled")
-    }
+    override def error(exception: Throwable): Unit                     = {}
   }
 
   /**
@@ -550,13 +529,69 @@ private object WebSocketStreamBuffer {
     socket.close(ApplicationFailureCode)
     subscriber.foreach(_.onError(exception))
 
-    override def isSubscribed: Boolean                                 = subscriber.isDefined
     override def enqueue(message: ByteString): Unit                    = {}
-    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = subscriber.onError(exception)
+    override def attach(subscriber: Subscriber[_ >: ByteString]): Unit = PreparedSubscriber.fail(subscriber, exception)
     override def addDemand(n: Long): Unit                              = {}
     override def complete(): Unit                                      = {}
     override def cancel(): Unit                                        = {}
     override def error(exception: Throwable): Unit                     = {}
+  }
+
+  object Failed {
+    def apply(exception: Throwable, subscriber: Subscriber[_])(implicit socket: WebSocket): Failed =
+      Failed(exception, Some(subscriber))
+  }
+
+  /** Subscription that interacts with the WebSocketStreamBuffer */
+  class BufferSubscription(buffer: WebSocketStreamBuffer) extends Subscription {
+    // Add request to the outstanding buffer demand
+    override def request(n: Long): Unit = buffer.addDemand(n)
+
+    // Cancel the buffer
+    // The buffer cancels immediately and does not delivery any pending elements
+    override def cancel(): Unit = buffer.cancel()
+  }
+
+  /** Dummy subscription used to set up subscriber and in order to immediately error the subscriber */
+  object ErrorSubscription extends Subscription {
+    override def request(n: Long): Unit = {}
+    override def cancel(): Unit         = {}
+  }
+
+  /**
+   * A subscriber that has been prepared with the appropriate subscription to interact with a buffer
+   *
+   * The reactive streams specification requires that a subscription be provided to the subscriber prior to any other
+   * signals. This is used to ensure that the subscriber is ready for operations before being used.
+   */
+  case class PreparedSubscriber(subscriber: Subscriber[_ >: ByteString])(implicit buffer: WebSocketStreamBuffer) {
+    subscriber.onSubscribe(new BufferSubscription(buffer))
+  }
+
+  object PreparedSubscriber {
+
+    /**
+     * Fail the given subscriber because another subscriber is already attached
+     *
+     * @param subscriber the subscriber to fail
+     */
+    def failSingle(subscriber: Subscriber[_]): Unit = {
+      fail(subscriber, new IllegalStateException("This publisher only supports one subscriber"))
+    }
+
+    /**
+     * Fail the given subscriber with the given exception
+     *
+     * The reactive streams specification requires that a subscription be provided to the subscriber prior to any other
+     * signals. The subscriber is provided a dummy subscription and then immediately failed.
+     *
+     * @param subscriber the subscriber to fail
+     * @param exception the exception
+     */
+    def fail(subscriber: Subscriber[_], exception: Throwable): Unit = {
+      subscriber.onSubscribe(ErrorSubscription)
+      subscriber.onError(exception)
+    }
   }
 
 }

@@ -151,8 +151,6 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
       exceptionSerializer: ExceptionSerializer,
       requestProtocol: MessageProtocol
   ) extends Publisher[ByteString] {
-    import WebSocketPublisher._
-
     // The buffer handles queueing elements, tracking subscriber demand, and sending elements in response to demand
     private val buffer = new WebSocketStreamBuffer(socket, config.bufferSize, deserializeException)
 
@@ -161,40 +159,12 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
 
     override def subscribe(subscriber: Subscriber[_ >: ByteString]): Unit = {
       if (subscriber != null) {
-        // This publisher only supports one subscriber
-        if (!buffer.isSubscribed) {
-          // Attach the subscriber
-          // The buffer will send elements in response to requests
-          buffer.attach(subscriber)
-          // Create subscription
-          subscriber.onSubscribe(new BufferSubscription(buffer))
-        } else {
-          // Use a dummy subscription and error the subscriber
-          subscriber.onSubscribe(ErrorSubscription)
-          subscriber.onError(new IllegalStateException("This publisher only supports one subscriber"))
-        }
+        // Attach the subscriber to the buffer, the buffer will send elements in response to requests
+        // The publisher and buffer only support one subscriber and will fail any subsequent subscribers
+        buffer.attach(subscriber)
       } else {
         throw new NullPointerException("Subscriber is null")
       }
-    }
-  }
-
-  private object WebSocketPublisher {
-
-    /** Subscription that interacts with the WebSocketStreamBuffer */
-    class BufferSubscription(buffer: WebSocketStreamBuffer) extends Subscription {
-      // Add request to the outstanding buffer demand
-      override def request(n: Long): Unit = buffer.addDemand(n)
-
-      // Cancel the buffer
-      // The buffer cancels immediately and does not delivery any pending elements
-      override def cancel(): Unit = buffer.cancel()
-    }
-
-    /** Dummy subscription used to set up subscriber and in order to immediately error the subscriber */
-    object ErrorSubscription extends Subscription {
-      override def request(n: Long): Unit = {}
-      override def cancel(): Unit         = {}
     }
   }
 

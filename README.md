@@ -120,9 +120,9 @@ lagom.client.websocket.bufferSize = 16
 
 The buffer is sized by default to compensate for this delay. However, the buffer can also be used for another purpose.
 
-The current WebSocket standard prevents the lagom.js WebSocket client from supporting stream back-pressure for sending or receiving WebSocket data. This can cause overflow errors and stream failure when upstream production is faster than downstream consumption. Normally, standard Akka methods, such as [buffer](https://doc.akka.io/docs/akka/current/stream/stream-rate.html), could be used to mitigate this issue. Unfortunately, these methods generally do not perform well in practice because of the way operations are scheduled by the JavaScript event-loop. A fast upstream often fails the stream before the Akka buffer logic has a chance to run.
+The current WebSocket standard prevents the lagom.js WebSocket client from supporting stream back-pressure for sending or receiving WebSocket data. This can cause overflow errors and stream failure when upstream production is faster than downstream consumption. This is primarily the case on the receiving side of a streaming response. Normally, standard Akka methods, such as [buffer](https://doc.akka.io/docs/akka/current/stream/stream-rate.html), could be used to mitigate this issue. Unfortunately, these methods generally do not perform well in practice because of the way operations are scheduled on the JavaScript event-loop. A fast upstream often fails the stream before the Akka buffer logic has a chance to run.
 
-The lagom.js receive buffer is implemented to schedule downstream consumption on the event-loop as soon as possible to mitigate this issue. The buffer size can be tuned to attempt to compensate for the fast streaming response. This is useful if the upstream has bursts of throughput that can overwhelm the downstream. However, depending on the use case, it may not be possible to fully compensate for stream rate differences. An upstream rate that is consistently faster than the downstream will eventually overflow the buffer. The buffer can be set to an unbounded size:
+The lagom.js receive buffer is implemented to schedule downstream consumption on the event-loop as soon as possible to mitigate this issue. The buffer size can be tuned to compensate for a fast streaming response. This is useful if the upstream has bursts of throughput that can overwhelm the downstream. However, depending on the use case, it may not be possible to fully compensate for stream rate differences. An upstream that is consistently faster than the downstream will eventually overflow the buffer. The buffer can be set to an unbounded size:
 
 ```yaml
 lagom.client.websocket.bufferSize = unlimited
@@ -130,12 +130,12 @@ lagom.client.websocket.bufferSize = unlimited
 
 However, an unbounded buffer can negatively impact browser performance and will eventually fail due to lack of memory.
 
-Alternatively, if the upstream logic (before data is sent over the WebSocket) can be modified, then the stream can be throttled. For example, in a `ServiceCall` implementation:
+Alternatively, if the upstream logic (before data is sent over the WebSocket) can be modified, then the stream can be throttled to reduce pressure on the downstream. For example, in a `ServiceCall` implementation:
 
 ```scala
 override def zeros = ServerServiceCall { _ =>
   // Throttle the source to 1 element per second
-  val source = Source.repeat(0).throttle(elements = 1, 1.second)
+  val source = Source.repeat(0).throttle(elements = 1, per = 1.second)
   Future.successful(source)
 }
 ```
