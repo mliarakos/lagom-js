@@ -12,7 +12,7 @@ Lagom.js is built against specific versions of Lagom, the latest are:
 |-------------|-------|-----------------|----------|
 | 0.1.2-1.5.5 | 1.5.5 | 2.11 <br> 2.12  | 0.6.31   |
 | 0.3.2-1.6.2 | 1.6.2 | 2.12 <br> 2.13  | 0.6.33   |
-| 0.5.0-1.6.5 | 1.6.4 | 2.12 <br> 2.13  | 1.2.0    |
+| 0.5.0-1.6.5 | 1.6.5 | 2.12 <br> 2.13  | 1.2.0    |
 
 Lagom.js moved to Scala.js 1.x starting with version `0.4.0-1.6.2`. Scala.js 0.6 is no longer supported, the last version to support it was `0.3.2-1.6.2`. For all past releases, see [releases](#Releases).
 
