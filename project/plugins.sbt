@@ -1,4 +1,4 @@
-addSbtPlugin("com.lightbend.lagom" % "lagom-sbt-plugin" % "1.6.4")
+addSbtPlugin("com.lightbend.lagom" % "lagom-sbt-plugin" % "1.6.5")
 
 addSbtPlugin("org.portable-scala" % "sbt-scalajs-crossproject" % "1.0.0")
 addSbtPlugin("org.scala-js"       % "sbt-scalajs"              % "1.2.0")
