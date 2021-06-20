@@ -92,7 +92,7 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
    * It does not back-pressure because WebSockets do not support back-pressure.
    *
    * This is used in conjunction with [[WebSocketPublisher]] to create a flow that represents sending data to and
-   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * receiving data from the socket. Coordinating the completion or cancellation of the flow between the subscriber and
    * publisher is done by closing the socket.
    */
   private class WebSocketSubscriber(
@@ -143,7 +143,7 @@ private[lagom] abstract class WebSocketClient(config: WebSocketClientConfig)(
    * WebSocket back-pressure.
    *
    * This is used in conjunction with [[WebSocketSubscriber]] to create a flow that represents sending data to and
-   * receiving data from the socket. Coordinating the completion or cancellation the flow between the subscriber and
+   * receiving data from the socket. Coordinating the completion or cancellation of the flow between the subscriber and
    * publisher is done by closing the socket.
    */
   private class WebSocketPublisher(
