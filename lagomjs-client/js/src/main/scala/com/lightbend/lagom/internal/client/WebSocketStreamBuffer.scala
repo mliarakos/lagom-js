@@ -176,7 +176,7 @@ private object WebSocketStreamBuffer {
      * Fulfill subscriber demand if possible
      *
      * Fulfill by removing up to demand number of elements elements from the buffer and sending them to the subscriber.
-     * The remaining outstanding demand is returned based on how elements where sent.
+     * The remaining outstanding demand is returned based on how many elements were sent.
      *
      * @param demand current demand
      * @return remaining demand
