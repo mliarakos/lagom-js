@@ -23,7 +23,6 @@ import play.api.libs.streams.AkkaStreams
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.scalajs.js.URIUtils
 
 private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
     serviceName: String,
@@ -52,7 +51,7 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
           queryParams
             .flatMap {
               case (name, values) =>
-                values.map(value => URIUtils.encodeURIComponent(name) + "=" + URIUtils.encodeURIComponent(value))
+                values.map(value => URLEncoder.encode(name, "utf-8") + "=" + URLEncoder.encode(value, "utf-8"))
             }
             .mkString("?", "&", "")
         } else ""
