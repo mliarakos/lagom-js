@@ -5,7 +5,6 @@
 package com.lightbend.lagom.internal.client
 
 import java.net.URI
-import java.net.URLEncoder
 import java.nio.ByteBuffer
 
 import akka.NotUsed
