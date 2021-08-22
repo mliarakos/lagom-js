@@ -14,6 +14,7 @@ import org.mliarakos.lagomjs.it.test.TestValues
 
 import scala.collection.immutable._
 import scala.concurrent.Future
+import scala.concurrent.duration._
 
 class IntegrationTestServiceImpl(implicit mat: Materializer) extends IntegrationTestService {
 
@@ -101,12 +102,12 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
   }
 
   override def testEmptyRequestUnboundedStreamingResponse(start: Int) = ServerServiceCall { _ =>
-    val source = Source.unfold(start)(current => Some(current + 1, current))
+    val source = unboundedSource(start)
     Future.successful(source)
   }
 
   override def testRequestUnboundedStreamingResponse = ServerServiceCall { start =>
-    val source = Source.unfold(start)(current => Some(current + 1, current))
+    val source = unboundedSource(start)
     Future.successful(source)
   }
 
@@ -140,6 +141,16 @@ class IntegrationTestServiceImpl(implicit mat: Materializer) extends Integration
   override def testStreamingEventualException(start: Int, end: Int) = ServerServiceCall { msg =>
     val source = Source(Seq.range(start, end + 1)).map(elem => if (elem < end) elem else throw TestException(msg))
     Future.successful(source)
+  }
+
+  /*
+   * Create an unbounded source that produces an increasing sequence of integers beginning with start
+   *
+   * The source is used for testing streaming service calls in order to assert that the number and sequence of elements
+   * is correct. The source is throttled in order to not overwhelm the JavaScript engine in the browser.
+   */
+  private def unboundedSource(start: Int) = {
+    Source.unfold(start)(current => Some(current + 1, current)).throttle(1, 10.millis)
   }
 
 }
