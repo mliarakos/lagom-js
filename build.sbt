@@ -3,9 +3,9 @@ import sbt.Keys.version
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val scalaVersions = Seq("2.12.13", "2.13.4")
+val scalaVersions = Seq("2.12.15", "2.13.7")
 
-val baseLagomVersion = "1.6.5"
+val baseLagomVersion = "1.6.7"
 val akkaJsVersion    = "2.2.6.14"
 
 lazy val scalaSettings = Seq(
@@ -50,7 +50,7 @@ lazy val publishSettings = Seq(
 
 lazy val commonSettings = scalaSettings ++ publishSettings ++ Seq(
   organization := "com.github.mliarakos.lagomjs",
-  version := s"0.5.0-$baseLagomVersion"
+  version := s"0.6.0-$baseLagomVersion-antex"
 )
 
 lazy val commonJsSettings = Seq(
@@ -182,7 +182,8 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
   .jsSettings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-      "org.scalatest"  %%% "scalatest"   % "3.1.4"            % Test
+      "org.scalatest"  %%% "scalatest"   % "3.1.4"            % Test,
+      "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0"
     )
   )
   .jsSettings(
@@ -240,7 +241,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
     libraryDependencies ++= Seq(
-      "org.scala-js"  %%% "scalajs-dom" % "1.1.0",
+      "org.scala-js"  %%% "scalajs-dom" % "2.1.0",
       "org.scalatest" %%% "scalatest"   % "3.1.4" % Test
     )
   )
