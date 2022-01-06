@@ -3,6 +3,8 @@
 
 target/
 
+.bsp/
+
 lagomjs-api/shared/
 lagomjs-api-scaladsl/shared/
 lagomjs-client/shared/
