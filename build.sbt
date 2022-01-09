@@ -142,7 +142,7 @@ lazy val `lagomjs-api` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
@@ -186,7 +186,7 @@ lazy val `lagomjs-api-scaladsl` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
@@ -208,7 +208,7 @@ lazy val `lagomjs-spi` = crossProject(JSPlatform)
   )
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value }
   )
 
@@ -245,7 +245,7 @@ lazy val `lagomjs-client` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
@@ -291,8 +291,8 @@ lazy val `lagomjs-client-scaladsl` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
-    compile in Compile := { (compile in Compile).dependsOn(shoconConcat).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(shoconConcat).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
@@ -328,7 +328,7 @@ lazy val `lagomjs-persistence-scaladsl` = crossProject(JSPlatform)
   )
   .jsSettings(commonJsSettings: _*)
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )
@@ -369,7 +369,7 @@ lazy val `lagomjs-macro-testkit` = crossProject(JSPlatform)
     )
   )
   .jsSettings(
-    compile in Compile := { (compile in Compile).dependsOn(assembleLagomLibrary).value },
+    Compile / compile := { (Compile / compile).dependsOn(assembleLagomLibrary).value },
     publishLocal := { publishLocal.dependsOn(assembleLagomLibrary).value },
     PgpKeys.publishSigned := { PgpKeys.publishSigned.dependsOn(assembleLagomLibrary).value }
   )

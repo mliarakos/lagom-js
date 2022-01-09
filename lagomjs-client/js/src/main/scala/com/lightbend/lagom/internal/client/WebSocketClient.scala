@@ -12,8 +12,8 @@ import org.reactivestreams.Publisher
 import org.reactivestreams.Subscriber
 import org.reactivestreams.Subscription
 import org.scalajs.dom.CloseEvent
+import org.scalajs.dom.Event
 import org.scalajs.dom.WebSocket
-import org.scalajs.dom.raw.Event
 import play.api.http.Status
 
 import java.net.URI

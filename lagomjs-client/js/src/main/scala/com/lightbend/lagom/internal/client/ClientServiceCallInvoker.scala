@@ -4,9 +4,6 @@
 
 package com.lightbend.lagom.internal.client
 
-import java.net.URI
-import java.nio.ByteBuffer
-
 import akka.NotUsed
 import akka.stream.Materializer
 import akka.stream.scaladsl.Sink
@@ -14,14 +11,15 @@ import akka.stream.scaladsl.Source
 import akka.util.ByteString
 import com.lightbend.lagom.internal.api.HeaderUtils
 import com.lightbend.lagom.internal.api.transport.LagomServiceApiBridge
-import org.scalajs.dom.XMLHttpRequest
-import org.scalajs.dom.ext.Ajax
-import org.scalajs.dom.ext.AjaxException
+import org.scalajs.dom
 import play.api.http.HeaderNames
 import play.api.libs.streams.AkkaStreams
 
+import java.net.URI
+import java.nio.ByteBuffer
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
+import scala.concurrent.Promise
 import scala.scalajs.js.URIUtils
 
 private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
@@ -261,65 +259,99 @@ private[lagom] abstract class ClientServiceCallInvoker[Request, Response](
     }
     val headers = (contentTypeHeader ++ requestHeaders ++ acceptHeader).toMap
 
-    val body =
+    val data =
       if (messageSerializerIsUsed(requestSerializer)) {
         val serializer = messageSerializerSerializerForRequest(requestSerializer)
         val body       = negotiatedSerializerSerialize(serializer, request)
-        Some(body)
+        Some(body.asByteBuffer)
       } else None
 
     // Remove User-Agent header because it's not allowed by XMLHttpRequest
     val filteredHeaders = headers - HeaderNames.USER_AGENT
-    val data            = body.map(_.asByteBuffer).getOrElse(ByteBuffer.wrap(Array[Byte]()))
 
-    Ajax
-      .apply(
-        method = method,
-        url = url,
-        data = data,
-        timeout = 0,
-        headers = filteredHeaders,
-        withCredentials = false,
-        responseType = ""
-      )
-      .recover({
-        case e: AjaxException if !e.isTimeout => e.xhr
-      })
-      .map(xhr => {
-        val status  = xhr.status
-        val headers = parseHeaders(xhr)
-        val body    = ByteString.fromString(Option(xhr.responseText).getOrElse(""))
+    ajaxRequest(
+      method = method,
+      url = url,
+      data = data,
+      headers = filteredHeaders,
+    ).map(xhr => {
+      val status  = xhr.status
+      val headers = parseHeaders(xhr)
+      val body    = ByteString.fromString(Option(xhr.responseText).getOrElse(""))
 
-        // Create the message header
-        val contentTypeHeader = headers.get(HeaderNames.CONTENT_TYPE).map(_.mkString(", "))
-        val protocol          = messageProtocolFromContentTypeHeader(contentTypeHeader)
-        val responseHeaders = headers.map {
-          case (key, values) => HeaderUtils.normalize(key) -> values.map(key -> _).toIndexedSeq
-        }
-        val transportResponseHeader = newResponseHeader(status, protocol, responseHeaders)
-        val responseHeader          = headerFilterTransformClientResponse(headerFilter, transportResponseHeader, requestHeader)
+      // Create the message header
+      val contentTypeHeader = headers.get(HeaderNames.CONTENT_TYPE).map(_.mkString(", "))
+      val protocol          = messageProtocolFromContentTypeHeader(contentTypeHeader)
+      val responseHeaders = headers.map {
+        case (key, values) => HeaderUtils.normalize(key) -> values.map(key -> _).toIndexedSeq
+      }
+      val transportResponseHeader = newResponseHeader(status, protocol, responseHeaders)
+      val responseHeader          = headerFilterTransformClientResponse(headerFilter, transportResponseHeader, requestHeader)
 
-        if (responseHeaderStatus(responseHeader) >= 400 && responseHeaderStatus(responseHeader) <= 599) {
-          throw exceptionSerializerDeserializeHttpException(
-            descriptorExceptionSerializer(descriptor),
-            responseHeaderStatus(responseHeader),
-            protocol,
-            body
-          )
-        } else {
-          val negotiatedDeserializer =
-            messageSerializerDeserializer(responseSerializer, messageHeaderProtocol(responseHeader))
-          responseHeader -> negotiatedDeserializerDeserialize(negotiatedDeserializer, body)
-        }
-      })
+      if (responseHeaderStatus(responseHeader) >= 400 && responseHeaderStatus(responseHeader) <= 599) {
+        throw exceptionSerializerDeserializeHttpException(
+          descriptorExceptionSerializer(descriptor),
+          responseHeaderStatus(responseHeader),
+          protocol,
+          body
+        )
+      } else {
+        val negotiatedDeserializer =
+          messageSerializerDeserializer(responseSerializer, messageHeaderProtocol(responseHeader))
+        responseHeader -> negotiatedDeserializerDeserialize(negotiatedDeserializer, body)
+      }
+    })
   }
 
 }
 
 private object ClientServiceCallInvoker {
+  import scala.scalajs.js.typedarray.TypedArrayBufferOps._
+
   private val header = "(.*?):(.*)".r
 
-  def parseHeaders(xhr: XMLHttpRequest): Map[String, Seq[String]] = {
+  // Local reimplementation of the scala-js-dom Ajax object that was deprecated in 2.0.0
+  // https://github.com/scala-js/scala-js-dom
+  def ajaxRequest(
+      method: String,
+      url: String,
+      data: Option[ByteBuffer],
+      headers: Map[String, String]
+  ): Future[dom.XMLHttpRequest] = {
+    val promise = Promise[dom.XMLHttpRequest]()
+    val req     = new dom.XMLHttpRequest()
+
+    req.onreadystatechange = { (_: dom.Event) =>
+      if (req.readyState == dom.XMLHttpRequest.DONE) {
+        // Succeed if the response did not timeout
+        // HTTP success or failure is handled downstream
+        if (req.status != 0)
+          promise.success(req)
+        else
+          promise.failure(new RuntimeException(req.responseText))
+      }
+    }
+
+    req.open(method, url)
+    headers.foreach(header => req.setRequestHeader(header._1, header._2))
+
+    data.fold {
+      req.send()
+    } { data =>
+      val dataArray = {
+        if (data.hasTypedArray()) {
+          data.typedArray().subarray(data.position, data.limit)
+        } else {
+          ByteBuffer.allocateDirect(data.remaining).put(data).typedArray()
+        }
+      }
+      req.send(dataArray)
+    }
+
+    promise.future
+  }
+
+  def parseHeaders(xhr: dom.XMLHttpRequest): Map[String, Seq[String]] = {
     xhr
       .getAllResponseHeaders()
       .split("\r\n")

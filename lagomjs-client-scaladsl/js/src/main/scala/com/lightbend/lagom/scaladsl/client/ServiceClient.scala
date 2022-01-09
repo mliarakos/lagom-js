@@ -4,12 +4,10 @@
 
 package com.lightbend.lagom.scaladsl.client
 
-import java.io.File
-
 import akka.actor.ActorSystem
 import akka.actor.CoordinatedShutdown
-import akka.stream.ActorMaterializer
 import akka.stream.Materializer
+import akka.stream.SystemMaterializer
 import com.lightbend.lagom.internal.client.CircuitBreakerMetricsProviderImpl
 import com.lightbend.lagom.internal.client.WebSocketClientConfig
 import com.lightbend.lagom.internal.scaladsl.api.broker.TopicFactoryProvider
@@ -26,6 +24,7 @@ import play.api.Configuration
 import play.api.Environment
 import play.api.Mode
 
+import java.io.File
 import scala.collection.immutable
 import scala.concurrent.ExecutionContext
 import scala.language.experimental.macros
@@ -202,7 +201,7 @@ abstract class StandaloneLagomClientFactory(
   // TODO: create compatibility layer for ActorSystemProvider?
   override lazy val actorSystem: ActorSystem        = ActorSystem("default", configuration.underlying, environment.classLoader)
   lazy val coordinatedShutdown: CoordinatedShutdown = CoordinatedShutdown(actorSystem)
-  override lazy val materializer: Materializer      = ActorMaterializer.create(actorSystem)
+  override lazy val materializer: Materializer      = SystemMaterializer(actorSystem).materializer
 
   /**
    * Stop this [[LagomClientFactory]] by shutting down the internal [[akka.actor.ActorSystem]] and Akka Streams [[akka.stream.Materializer]].
